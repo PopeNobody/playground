@@ -1,0 +1,144 @@
+#!/usr/bin/perl -w
+use strict;
+use warnings;
+use common::sense;
+$|++;
+our(@VERSION)=qw( 0 1 0 );
+use Nobody::Util;
+use IO::File;
+use IO::Pipe;
+use IO::Select;
+use Path::Tiny;
+use Time::HiRes qw( sleep alarm );
+use Getopt::WonderBra;
+our(%cfg);
+BEGIN {
+  sub help {
+    say "Usage: $0 [ -f logfile ] [ process ]";
+    say "";
+    say "  -f [name] : use logfile name";
+  }
+  sub version {
+    local($")=".";
+    print "@VERSION";
+  };
+}
+INIT {
+  for($cfg{tmpdir}) {
+    for my $tmp ( qw( TMP TMPDIR TEMPDIR TEMPORARY_DIRECTORY ) ) {
+      $_=$ENV{$tmp};
+      last if defined;
+    };
+    s{/*$}{/} if defined;
+  };
+
+  $cfg{logfile}="$cfg{tmpdir}capture.$$.log";
+  unless(grep { $_ eq '--' } @ARGV){
+    print STDERR "warning: no --\n";
+  };
+  @ARGV = getopt("pf:",@ARGV);
+  while(($_=shift(@ARGV))ne'--'){
+    if($_ eq '-f') {
+      $cfg{logfile}=shift(@ARGV);
+    } elsif ( $_ eq '-q' ) {
+      open(STDOUT,">/dev/null");
+      open(STDERR,">/dev/null");
+    } else {
+      die "unexpected $_";
+    };
+  };
+}
+my (@argv);
+our(@str);
+sub handle_STDIN {
+}
+sub handle_STDOUT {
+}
+sub handle_STDERR {
+}
+BEGIN {
+  sub buf() {
+    my $buf="";
+    return \$buf;
+  };
+  *main::str = [
+    [*STDIN,       new IO::Pipe, buf(),'I',\&hadnle_STDIN],
+    [new IO::Pipe,      *STDOUT, buf(),'O',\&hadnle_STDOUT],
+    [new IO::Pipe,      *STDERR, buf(),'E',\&handle_STDERR],
+  ];
+};
+
+my $old = umask 0077;
+open(my $log,">", $cfg{logfile});
+umask $old;
+$log->say("C: ", pp(\@ARGV));
+
+my $dead=0;
+my (%dat);
+my (@key) = qw( r w b p );
+sub start_child() {
+  $DB::single=1;
+  my $pid;
+  $pid=fork;
+  return $pid if $pid;
+  delete $SIG{CHLD};
+  open($str[0][0],"<&".fileno($str[0][1]->reader));
+  open($str[1][1],">&".fileno($str[1][0]->writer));
+  open($str[2][1],">&".fileno($str[2][0]->writer));
+  for(map { $_->[0], $_->[1] } @str) {
+    $_->autoflush(1);
+  };
+  exec(@ARGV);
+  die "NONE SHALL PASS(exec(@ARGV)=>$!)";
+}
+my $ip;
+sub main() {
+  local($DB::inhibit_exit)=0;
+  $SIG{CHLD}=sub { $dead=1; $log->say("S:",@_); };
+  start_child;
+  my $sel=IO::Select->new;
+  for(@str) {
+    local(*str)=$_;
+    my ($dir) = ($str[3] eq 'I')?0:1;
+    my ($call) = $dir ? "reader" : "writer";
+    $str[1-$dir]->$call;
+    $sel->add(\@str);
+  };
+  while(1) {
+    my $n = scalar($sel->handles);
+    last unless $n;
+    if($n==1 && $dead && !fileno([$sel->handles]->[0][0])){
+      open(STDIN,"</dev/null");
+    };
+    my @r = $sel->can_read();
+    for my $a(@r) {
+      my ($r, $w, $b, $t) = @$a;
+      local(*_)=$b;
+      $n=sysread($r,$_,1024,length);
+      if($n) {
+        my($c)=0;
+        while((my $i=index($_,"\n"))>=0){
+          my ($line)=substr($_,0,$i+1,"");
+          $log->print("$t: ".pp($line)."\n");
+          $w->print("$line");
+          ++$c;
+        };
+      } else {
+        if(defined($n)){
+#              warn "eof on ",fileno($r),"\n";
+        } else {
+          warn "error on fd: ",fileno($r),": $!\n";
+        };
+        if(length) {
+          $log->print("$t".pp($_)."\n");
+          print "$_<no-cr>\n";
+        }
+        $sel->remove($a);
+        $sel->remove($r);
+        close($w) if fileno($w) > 2;
+        close($r);
+      };
+    };
+  };
+}
+main();
