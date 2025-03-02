@@ -1,0 +1,23 @@
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c99 -g
+LDFLAGS = -lreadline -ljson-c
+
+all: readline-server tty-forwarder tty-receiver
+
+readline-server: readline-server.c
+	$(CC) $(CFLAGS) -o readline-server readline-server.c $(LDFLAGS)
+
+tty-forwarder: tty-forwarder.c
+	$(CC) $(CFLAGS) -o tty-forwarder tty-forwarder.c
+
+tty-receiver: tty-receiver.c
+	$(CC) $(CFLAGS) -o tty-receiver tty-receiver.c
+
+install: all
+	mkdir -p $(HOME)/bin
+	cp readline-server tty-forwarder tty-receiver $(HOME)/bin/
+
+clean:
+	rm -f readline-server tty-forwarder tty-receiver *.o
+
+.PHONY: all install clean
