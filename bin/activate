@@ -1,0 +1,63 @@
+#!/bin/bash
+# AI Playground environment activation script
+# Usage: source activate
+
+# Store current directory
+AI_PLAYGROUND_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+# Backup original environment variables if this is the first activation
+if [ -z "$AI_PLAYGROUND_OLD_PATH" ]; then
+    export AI_PLAYGROUND_OLD_PATH="$PATH"
+fi
+
+if [ -z "$AI_PLAYGROUND_OLD_PERL5LIB" ]; then
+    export AI_PLAYGROUND_OLD_PERL5LIB="$PERL5LIB"
+fi
+
+if [ -z "$AI_PLAYGROUND_OLD_PS1" ]; then
+    export AI_PLAYGROUND_OLD_PS1="$PS1"
+fi
+
+# Update environment variables
+export PATH="$AI_PLAYGROUND_DIR/bin:$PATH"
+export PERL5LIB="$AI_PLAYGROUND_DIR/lib:$PERL5LIB"
+
+# Change command prompt to indicate activation
+export PS1="(ai-playground) $PS1"
+
+# Create deactivate function
+deactivate() {
+    # Restore original environment variables
+    export PATH="$AI_PLAYGROUND_OLD_PATH"
+    export PERL5LIB="$AI_PLAYGROUND_OLD_PERL5LIB"
+    export PS1="$AI_PLAYGROUND_OLD_PS1"
+    
+    # Unset backup variables
+    unset AI_PLAYGROUND_OLD_PATH
+    unset AI_PLAYGROUND_OLD_PERL5LIB
+    unset AI_PLAYGROUND_OLD_PS1
+    
+    # Unset this function
+    unset -f deactivate
+    
+    # Clear AI_PLAYGROUND_DIR
+    unset AI_PLAYGROUND_DIR
+    
+    echo "AI Playground environment deactivated."
+}
+
+echo "AI Playground environment activated. Use 'deactivate' to exit."
+echo "PATH updated: bin directory added"
+echo "PERL5LIB updated: lib directory added"
+
+# If the script is sourced, this will exit here
+return 0 2>/dev/null
+
+# If we get here, the script was executed, not sourced
+echo ""
+echo "WARNING: This script needs to be sourced, not executed."
+echo "The environment changes won't persist in your shell."
+echo ""
+echo "Please use: source activate"
+echo "Or:         . ./activate"
+exit 1

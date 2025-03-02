@@ -1,0 +1,721 @@
+#!/usr/bin/perl
+# vim: ts=2 sw=2 ft=perl
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+  if 0;
+$|++;
+use FindBin;
+BEGIN {
+  my $bin="$BIN";
+  $BIN=~s{/s?bin$}{};
+  die "no lib dir found!" unless -d "$BIN/lib";
+  use lib "$BIN/lib";
+};
+use common::sense;
+use autodie;
+use Nobody::Util;
+use Path::Tiny;
+use Data::Dumper;
+use File::Temp qw(tempfile);
+use IO::Socket::UNIX;
+use JSON;
+use lib 'lib';
+use AI::Comm qw(start_comm_server send_message broadcast_message register_handler);
+
+our(@VERSION) = qw( 0 1 0 );
+
+# Configuration
+my $PORT = $ENV{PORT} // 4001;          # HTTP port
+my $SOCKET_PATH = "ai-socket";          # Unix domain socket path
+my $SCRIPT_LOG_DIR = "ai_scripts";      # Directory to log scripts
+my $LOG_DIR = "ai_logs";                # Directory for request/response logs
+my $DEBUG = $ENV{DEBUG} // 1;           # Enable debug output
+my $SECURE_MODE = $ENV{SECURE_MODE} // 0;  # Extra security for sensitive environments
+
+# In secure mode, hide all potentially sensitive information
+if ($SECURE_MODE) {
+  $DEBUG = 0 unless $ENV{DEBUG};    # Default to no debug output in secure mode
+  # Redirect error output if needed
+  if ($ENV{ERROR_LOG}) {
+    open(STDERR, '>>', $ENV{ERROR_LOG}) or warn "Could not open error log: $!";
+  }
+}
+
+# Create log directories
+path($SCRIPT_LOG_DIR)->mkpath unless path($SCRIPT_LOG_DIR)->exists;
+path($LOG_DIR)->mkpath unless path($LOG_DIR)->exists;
+
+# Initialize the instance ID (use a random ID or specify via env var)
+my $INSTANCE_ID = $ENV{INSTANCE_ID} || "ai-" . int(rand(1000000));
+my $INSTANCE_TYPE = $ENV{INSTANCE_TYPE} || "general";
+
+# Start the communication server
+my $comm_info = start_comm_server($INSTANCE_ID, $INSTANCE_TYPE);
+print "Started communication server with ID: $INSTANCE_ID\n";
+
+# Register handlers for different message types
+register_handler('script_result', sub {
+    my $message = shift;
+    print "Received script result from " . $message->{sender}->{id} . "\n";
+    if ($DEBUG) {
+        print "Script output: " . $message->{output} . "\n";
+    }
+});
+
+register_handler('query', sub {
+    my $message = shift;
+    print "Received query from " . $message->{sender}->{id} . ": " . $message->{query} . "\n";
+    
+    # Could automatically process this query and send back results
+    if ($message->{expect_response}) {
+        send_message($message->{sender}->{id}, {
+            type => 'response',
+            query_id => $message->{query_id},
+            response => "Processed query: " . $message->{query}
+        });
+    }
+});
+
+# Register a catch-all handler for unknown message types
+register_handler('*', sub {
+    my $message = shift;
+    print "Received unknown message type '" . $message->{type} . 
+          "' from " . $message->{sender}->{id} . "\n";
+});
+
+# Print environment configuration at startup
+sub env_show_var(@) {
+  my ($res)=1;
+  for my $key(@_){
+    my $val=$ENV{$key};
+    if(!defined($val)) {
+      $val="(not set)";
+      $res=0;
+    } elsif($key =~ m{KEY}) {
+      $val=~s{.}{*}g;
+    }
+    say STDERR "$key => $val";
+  };
+  return $res;
+};
+sub env_show() {
+  say STDERR "Environment configuration";
+  return env_show_var qw(API_URL API_KEY API_MOD API_TYP);
+};
+die "environment incomplete" unless env_show;
+
+# Basic web interface with form for input and response area
+my $form = q{
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Playground</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        textarea { width: 100%; font-family: monospace; }
+        .output { border: 1px solid #ccc; padding: 10px; margin-top: 10px; background: #f5f5f5; }
+        pre { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>AI Playground</h1>
+    <form method="post" action="/submit">
+        <h2>AI Input:</h2>
+        <textarea id="editField" name="editField" rows="15" cols="80" placeholder="Enter your prompt or script here..."></textarea>
+        <div>
+            <label for="ai_model">AI Model:</label>
+            <select id="ai_model" name="ai_model">
+                <option value="gpt">GPT</option>
+                <option value="claude">Claude</option>
+                <option value="gemini">Gemini</option>
+                <option value="claude-3-opus">Claude 3 Opus</option>
+                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+            </select>
+        </div>
+        <br>
+        <input type="submit" value="Submit to AI">
+    </form>
+    <div id="output" class="output">
+        <h2>Response:</h2>
+        <div id="response"></div>
+    </div>
+    <p><a href="/instances">View AI Instances Communication</a></p>
+</body>
+</html>
+};
+
+# Initialize the HTTP server
+use AnyEvent::HTTPD;
+my $httpd = AnyEvent::HTTPD->new(port => $PORT);
+
+# Track active sessions by AI
+my %sessions;
+
+# Save a request/response log with sensitive info redacted
+sub save_log {
+  my ($type, $content, $ai_model, $is_error) = @_;
+  return if $SECURE_MODE && !$ENV{LOG_IN_SECURE_MODE};
+  
+  # Create timestamp and filename using serdate
+  my $date_str = serdate();
+  my $log_dir = path("$LOG_DIR/$date_str");
+  $log_dir->mkpath unless $log_dir->exists;
+  
+  my $filename = serdate(time()) . "-$ai_model-$type";
+  $filename .= "-error" if $is_error;
+  my $log_file = path("$log_dir/$filename.log");
+  
+  # Redact sensitive information
+  my $redacted = $content;
+  $redacted =~ s/(api[-_]?key|token|authorization)(\s*[=:]\s*)[^\s&"']*/$1$2(REDACTED)/gi;
+  $redacted =~ s/(Bearer|Basic)\s+[^\s"']*/$1 (REDACTED)/gi;
+  
+  # Save the log
+  $log_file->spew($redacted);
+  return $log_file;
+}
+
+# Log HTTP request and response
+sub log_http_exchange {
+  my ($req, $res, $ai_model) = @_;
+  
+  # Clone and redact the request
+  my $req_clone = $req->clone;
+  if ($req_clone->header('Authorization')) {
+     $req_clone->header('Authorization', 'Bearer [REDACTED]');
+  }
+  
+  # Save request log
+  my $req_log = save_log('request', $req_clone->as_string, $ai_model);
+  
+  # Save response log if we have one
+  if ($res) {
+    my $res_log = save_log('response', $res->as_string, $ai_model, !$res->is_success);
+    return ($req_log, $res_log);
+  }
+  return $req_log;
+}
+
+# Execute a script with shebang
+sub execute_script {
+  my ($script_content, $ai_user) = @_;
+  
+  # Create a temporary file for the script
+  my $tmp_file = Path::Tiny->tempfile(SUFFIX => '.tmp');
+  $tmp_file->spew($script_content);
+  $tmp_file->chmod(0755); # Make executable
+  
+  # Log the script
+  my $log_dir = path("$SCRIPT_LOG_DIR/$ai_user");
+  $log_dir->mkpath unless $log_dir->exists;
+  my $timestamp = time();
+  my $script_log = path("$log_dir/script_$timestamp.txt");
+  $script_log->spew($script_content);
+  
+  # Determine the interpreter from the shebang line
+  my ($interpreter) = $script_content =~ m{^#!(/\S+)};
+  $interpreter ||= '/usr/bin/env python3'; # Default to python3 if not specified
+  
+  # Capture both stdout and stderr
+  my $output = '';
+  eval {
+    # Run the script
+    if ($DEBUG) {
+      print STDERR "Executing script with: $interpreter $tmp_file\n";
+    }
+    $output = qx{$interpreter $tmp_file 2>&1};
+  };
+  my $error = $@;
+  
+  # Log the output
+  my $output_log = path("$log_dir/output_$timestamp.txt");
+  $output_log->spew($output // "No output") if defined $output;
+  
+  # Notify other instances about this script execution
+  broadcast_message({
+    type => 'script_execution',
+    script_type => ($script_content =~ /^#!.*python/i) ? 'python' : 
+                  ($script_content =~ /^#!.*perl/i) ? 'perl' : 
+                  ($script_content =~ /^#!.*ruby/i) ? 'ruby' : 
+                  ($script_content =~ /^#!.*node/i) ? 'node' : 'unknown',
+    exit_code => $? >> 8,
+    output_length => length($output // ""),
+    timestamp => $timestamp,
+    ai_user => $ai_user
+  });
+  
+  # Clean up
+  $tmp_file->remove;
+  
+  return {
+    output => $output,
+    error => $error,
+    exit_code => $? >> 8,
+    timestamp => $timestamp,
+    log_file => $output_log->stringify
+  };
+}
+
+# Detect and extract shebang scripts from text
+sub extract_scripts {
+  my ($text) = @_;
+  my @scripts;
+  
+  # Match scripts starting with a shebang line - handle various formats
+  # This regex handles scripts both inside markdown code blocks and standalone
+  while ($text =~ /(^|\n)((#!\/[^\n]+\n(?:\s*(?:[^\n]+)\n)+))/gs) {
+    my $script = $2;
+    
+    # Clean up markdown code blocks if present
+    $script =~ s/^```\w*\n//;
+    $script =~ s/\n```$//;
+    
+    # Ensure script starts with shebang
+    if ($script =~ /^#!/) {
+      push @scripts, $script;
+    }
+  }
+  
+  return @scripts;
+}
+
+# Process AI request through the appropriate API
+sub process_ai_request {
+  my ($input, $ai_model) = @_;
+  
+  if ($DEBUG) {
+    print STDERR "Processing with model: $ai_model (API_MOD=$ENV{API_MOD})\n";
+    print STDERR "Using API URL: $ENV{API_URL}\n";
+  }
+  
+  # Try to use your existing API connection
+  my $response;
+  eval {
+    require AI::Conv;
+    require AI::Transact;
+    require HTTP::Request;
+    require LWP::UserAgent;
+    AI::Transact->import('transact');
+    
+    my $conv_file = "conversation_${ai_model}.jwrap";
+    my $conv = AI::Conv->new(path($conv_file));
+    
+    # Hook into AI::Transact to capture requests/responses for logging
+    # This assumes AI::Transact uses LWP::UserAgent internally
+    my $orig_request = \&LWP::UserAgent::request;
+    no warnings 'redefine';
+    local *LWP::UserAgent::request = sub {
+      my ($self, $req) = @_;
+      my $res = $orig_request->($self, $req);
+      log_http_exchange($req, $res, $ai_model);
+      return $res;
+    };
+    
+    $response = transact($ai_model, $conv, $input);
+  };
+  
+  if ($@) {
+    my $error = $@;
+    # Sanitize error message to remove any API keys
+    $error =~ s/(api[-_]?key|token)(\s*[=:]\s*)[^\s&]*/$1$2/; #[REDACTED]/gi;
+    print STDERR "Error using AI::Transact: $error\n" if $DEBUG;
+    # Fallback to a mock response for testing
+    $response = "This is a simulated response from $ai_model.\n\n";
+    $response .= "If you provide code with a shebang line, I'll execute it for you.";
+  }
+  
+  return $response;
+}
+
+$httpd->reg_cb (
+  # Root path shows the form
+  '/' => sub {
+    my ($httpd, $req) = @_;
+    $req->respond({ content => ['text/html', $form] });
+  },
+  
+  # Instance communication status page
+  '/instances' => sub {
+    my ($httpd, $req) = @_;
+    
+    # Get a list of all instances
+    my @instances;
+    for my $socket_file (path("ai_sockets")->children) {
+      next unless $socket_file =~ /\.sock$/;
+      my $id = $socket_file->basename;
+      $id =~ s/\.sock$//;
+      
+      push @instances, {
+        id => $id,
+        is_self => ($id eq $INSTANCE_ID),
+        socket => $socket_file->stringify
+      };
+    }
+    
+    # Create a simple HTML page showing the instances
+    my $instances_html = q{
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Playground - Instance Communication</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .self { background-color: #e6f7ff; }
+        .controls { margin: 20px 0; }
+    </style>
+    <script>
+        function sendMessage() {
+            const target = document.getElementById('targetInstance').value;
+            const messageType = document.getElementById('messageType').value;
+            const messageContent = document.getElementById('messageContent').value;
+            
+            fetch('/comm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'send',
+                    target: target,
+                    message: {
+                        type: messageType,
+                        content: messageContent
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? 'Message sent successfully' : 'Failed to send message');
+            });
+        }
+        
+        function broadcastMessage() {
+            const messageType = document.getElementById('broadcastType').value;
+            const messageContent = document.getElementById('broadcastContent').value;
+            
+            fetch('/comm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'broadcast',
+                    message: {
+                        type: messageType,
+                        content: messageContent
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Broadcast sent to ' + data.results.length + ' instances');
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>AI Playground - Instance Communication</h1>
+    <p>Current instance: <strong>} . $INSTANCE_ID . q{</strong> (Type: } . $INSTANCE_TYPE . q{)</p>
+    
+    <h2>Active Instances</h2>
+    <table>
+        <tr>
+            <th>Instance ID</th>
+            <th>Status</th>
+            <th>Socket Path</th>
+        </tr>
+    };
+    
+    foreach my $instance (@instances) {
+        $instances_html .= "<tr" . ($instance->{is_self} ? " class='self'" : "") . ">";
+        $instances_html .= "<td>" . $instance->{id} . "</td>";
+        $instances_html .= "<td>" . ($instance->{is_self} ? "Self" : "Active") . "</td>";
+        $instances_html .= "<td>" . $instance->{socket} . "</td>";
+        $instances_html .= "</tr>";
+    }
+    
+    $instances_html .= q{
+    </table>
+    
+    <div class="controls">
+        <h2>Send Message to Specific Instance</h2>
+        <div>
+            <label for="targetInstance">Target Instance:</label>
+            <select id="targetInstance">
+    };
+    
+    foreach my $instance (@instances) {
+        next if $instance->{is_self};
+        $instances_html .= "<option value='" . $instance->{id} . "'>" . $instance->{id} . "</option>";
+    }
+    
+    $instances_html .= q{
+            </select>
+        </div>
+        <div>
+            <label for="messageType">Message Type:</label>
+            <input type="text" id="messageType" value="query" />
+        </div>
+        <div>
+            <label for="messageContent">Message Content:</label>
+            <input type="text" id="messageContent" size="50" />
+        </div>
+        <button onclick="sendMessage()">Send Message</button>
+    </div>
+    
+    <div class="controls">
+        <h2>Broadcast Message to All Instances</h2>
+        <div>
+            <label for="broadcastType">Message Type:</label>
+            <input type="text" id="broadcastType" value="notification" />
+        </div>
+        <div>
+            <label for="broadcastContent">Message Content:</label>
+            <input type="text" id="broadcastContent" size="50" />
+        </div>
+        <button onclick="broadcastMessage()">Broadcast Message</button>
+    </div>
+    
+    <p><a href="/">Back to Main Interface</a></p>
+</body>
+</html>
+    };
+    
+    $req->respond({ content => ['text/html', $instances_html] });
+  },
+  
+  # Handle form submissions
+  '/submit' => sub {
+    my ($httpd, $req) = @_;
+    
+    my $input = $req->parm('editField');
+    my $ai_model = $req->parm('ai_model') || 'gpt';
+    
+    unless (defined $input && $input =~ /\S/) {
+      $req->respond({ content => ['text/html', "No input received"] });
+      return;
+    }
+    
+    # Look for shebang scripts
+    my @scripts = extract_scripts($input);
+    my $response_html = "";
+    
+    # First, process through AI if not already containing scripts
+    if (!@scripts) {
+      my $ai_response = process_ai_request($input, $ai_model);
+      $response_html .= "<h3>AI Response (Model: $ENV{API_MOD}):</h3>\n<pre>$ai_response</pre>\n";
+      
+      # Check if AI response contains scripts
+      @scripts = extract_scripts($ai_response);
+      if (@scripts) {
+        $response_html .= "<h3>Found scripts in AI response:</h3>\n";
+      }
+    }
+    
+    # Execute any scripts found
+    if (@scripts) {
+      $response_html .= "<h3>Script Execution:</h3>\n";
+      foreach my $script (@scripts) {
+        my $result = execute_script($script, $ai_model);
+        $response_html .= "<h4>Script executed with exit code " . $result->{exit_code} . "</h4>\n";
+        $response_html .= "<pre>" . ($result->{output} || "No output") . "</pre>\n";
+        
+        # If this was from AI response, send the execution results back to AI
+        if (!extract_scripts($input)) {
+          my $execution_feedback = "I executed your script and got the following output:\n\n```\n" . 
+                                  ($result->{output} || "No output") . 
+                                  "\n```\n\nExit code: " . $result->{exit_code};
+          
+          my $ai_feedback = process_ai_request($execution_feedback, $ai_model);
+          $response_html .= "<h3>AI Feedback on Execution:</h3>\n<pre>$ai_feedback</pre>\n";
+        }
+      }
+    }
+    
+    # Update the form with the response and return it
+    my $response_page = $form;
+    $response_page =~ s/<div id="response"><\/div>/<div id="response">$response_html<\/div>/;
+    $response_page =~ s/<textarea id="editField"[^>]*>.*?<\/textarea>/<textarea id="editField" name="editField" rows="15" cols="80">$input<\/textarea>/s;
+    
+    $req->respond({ content => ['text/html', $response_page] });
+  },
+  
+  # API endpoint for AI-to-AI communication
+  '/ai_api' => sub {
+    my ($httpd, $req) = @_;
+    
+    # Create a pseudo HTTP request object for logging
+    my $http_req = HTTP::Request->new(
+      'POST',
+      $req->uri,
+      [ map { $_ => $req->headers->{$_} } keys %{$req->headers} ],
+      $req->content
+    );
+    
+    # Log the incoming request (without any response yet)
+    my $ai_model = 'unknown';
+    eval {
+      if ($req->content) {
+        my $json = decode_json($req->content);
+        $ai_model = $json->{model} || 'unknown';
+      }
+    };
+    log_http_exchange($http_req, undef, $ai_model);
+    
+    # Basic auth check
+    my $auth_token = $req->headers->{'authorization'};
+    unless ($auth_token && $auth_token =~ /^Bearer (.+)$/) {
+      my $error_response = { code => 401, content => ['application/json', '{"error":"Unauthorized"}'] };
+      
+      # Log the response
+      my $http_res = HTTP::Response->new(401, 'Unauthorized');
+      $http_res->content('{"error":"Unauthorized"}');
+      log_http_exchange($http_req, $http_res, $ai_model);
+      
+      $req->respond($error_response);
+      return;
+    }
+    
+    # Get the JSON content
+    my $content = $req->content;
+    my $json;
+    eval {
+      $json = decode_json($content);
+    };
+    
+    if ($@) {
+      $req->respond({ code => 400, content => ['application/json', '{"error":"Invalid JSON"}'] });
+      return;
+    }
+    
+    my $message = $json->{message};
+    my $ai_model = $json->{model} || 'gpt';
+    
+    my @scripts = extract_scripts($message);
+    my $response = { model => $ai_model };
+    
+    if (@scripts) {
+      my @results;
+      foreach my $script (@scripts) {
+        my $result = execute_script($script, $ai_model);
+        push @results, {
+          exit_code => $result->{exit_code},
+          output => $result->{output},
+          timestamp => $result->{timestamp}
+        };
+      }
+      $response->{results} = \@results;
+    } else {
+      # Process with AI
+      my $ai_response = process_ai_request($message, $ai_model);
+      $response->{response} = $ai_response;
+      
+      # Check if AI response has scripts
+      my @ai_scripts = extract_scripts($ai_response);
+      if (@ai_scripts) {
+        my @results;
+        foreach my $script (@ai_scripts) {
+          my $result = execute_script($script, $ai_model);
+          push @results, {
+            exit_code => $result->{exit_code},
+            output => $result->{output},
+            timestamp => $result->{timestamp}
+          };
+        }
+        $response->{script_results} = \@results;
+      }
+    }
+    
+    # Create and log the response
+    my $json_response = encode_json($response);
+    my $http_res = HTTP::Response->new(200, 'OK');
+    $http_res->content($json_response);
+    log_http_exchange($http_req, $http_res, $ai_model);
+    
+    $req->respond({ content => ['application/json', $json_response] });
+  },
+  
+  # Inter-instance communication endpoint
+  '/comm' => sub {
+    my ($httpd, $req) = @_;
+    
+    # Require POST method
+    unless ($req->method eq 'POST') {
+      $req->respond({ code => 405, content => ['application/json', '{"error":"Method not allowed"}'] });
+      return;
+    }
+    
+    # Parse the JSON request
+    my $json;
+    eval {
+      $json = decode_json($req->content);
+    };
+    
+    if ($@) {
+      $req->respond({ code => 400, content => ['application/json', '{"error":"Invalid JSON"}'] });
+      return;
+    }
+    
+    # Handle different communication actions
+    my $action = $json->{action};
+    my $result;
+    
+    if ($action eq 'send') {
+      # Send a message to a specific instance
+      my $target = $json->{target};
+      my $message = $json->{message};
+      
+      unless ($target && $message && $message->{type}) {
+        $req->respond({ code => 400, content => ['application/json', '{"error":"Missing target or message"}'] });
+        return;
+      }
+      
+      my $success = send_message($target, $message);
+      $result = { success => $success ? JSON::true : JSON::false };
+    }
+    elsif ($action eq 'broadcast') {
+      # Broadcast a message to all instances
+      my $message = $json->{message};
+      
+      unless ($message && $message->{type}) {
+        $req->respond({ code => 400, content => ['application/json', '{"error":"Missing or invalid message"}'] });
+        return;
+      }
+      
+      my $results = broadcast_message($message);
+      $result = { results => $results };
+    }
+    elsif ($action eq 'list') {
+      # List all active instances
+      my @instances;
+      
+      for my $socket_file (path("ai_sockets")->children) {
+        next unless $socket_file =~ /\.sock$/;
+        my $id = $socket_file->basename;
+        $id =~ s/\.sock$//;
+        
+        push @instances, {
+          id => $id,
+          is_self => ($id eq $INSTANCE_ID),
+        };
+      }
+      
+      $result = { 
+        instances => \@instances,
+        self => {
+          id => $INSTANCE_ID,
+          type => $INSTANCE_TYPE
+        }
+      };
+    }
+    else {
+      $req->respond({ code => 400, content => ['application/json', '{"error":"Unknown action"}'] });
+      return;
+    }
+    
+    $req->respond({ content => ['application/json', encode_json($result)] });
+  }
+);
+
+# Start the server
+print "Starting AI Playground Server on port $PORT...\n";
+$httpd->run;
