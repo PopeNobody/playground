@@ -5,7 +5,7 @@
 set -e
 
 # Set TMUX environment to avoid conflicting with user's session
-export TMUX_TMPDIR=$(mktemp -d tmp-XXXXXXX)
+export TMUX_TMPDIR=$(mktemp -d $PWD/tmp-XXXXXXX)
 
 # Working directory for test artifacts
 TEST_DIR=$(mktemp -d)
