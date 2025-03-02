@@ -3,8 +3,8 @@
 # Usage: source activate
 
 # Store current directory
-AI_PLAYGROUND_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-
+AI_PLAYGROUND_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+AI_PLAYGROUND_DIR="${AI_PLAYGROUND_DIR%/bin}"
 # Backup original environment variables if this is the first activation
 if [ -z "$AI_PLAYGROUND_OLD_PATH" ]; then
     export AI_PLAYGROUND_OLD_PATH="$PATH"
@@ -19,12 +19,24 @@ if [ -z "$AI_PLAYGROUND_OLD_PS1" ]; then
 fi
 
 # Update environment variables
-export PATH="$AI_PLAYGROUND_DIR/bin:$PATH"
-export PERL5LIB="$AI_PLAYGROUND_DIR/lib:$PERL5LIB"
-
+case "$PATH" in
+  ($AI_PLAYGROUND_DIR:*) ;;
+  (*) export PATH="$AI_PLAYGROUND_DIR/bin:$PATH";;
+esac
+case "$PERL5LIB" in
+  ($AI_PLAYGROUND_DIR:*) ;;
+  (*) export PERL5LIB="$AI_PLAYGROUND_DIR/lib:$PERL5LIB";;
+esac
 # Change command prompt to indicate activation
-export PS1="(ai-playground) $PS1"
+export PS1=$'\n'"(ai-playground) $PS1"
 
+if (($#)); then
+  # user has either screwed the pooch, or has provided us a program
+  # to run in this environement.  In this case, we don't need a 
+  # deactivate function, he can exit.
+  export PROMPT_COMMAND="PS1=\"$PS1\"; unset PROMPT_COMMAND;"
+  exec "$@"
+fi
 # Create deactivate function
 deactivate() {
     # Restore original environment variables
@@ -43,21 +55,28 @@ deactivate() {
     # Clear AI_PLAYGROUND_DIR
     unset AI_PLAYGROUND_DIR
     
-    echo "AI Playground environment deactivated."
+    warn "AI Playground environment deactivated."
 }
 
-echo "AI Playground environment activated. Use 'deactivate' to exit."
-echo "PATH updated: bin directory added"
-echo "PERL5LIB updated: lib directory added"
+warn "AI Playground environment activated. Use 'deactivate' to exit."
+warn "PATH updated: bin directory added"
+warn "PERL5LIB updated: lib directory added"
 
 # If the script is sourced, this will exit here
 return 0 2>/dev/null
 
 # If we get here, the script was executed, not sourced
-echo ""
-echo "WARNING: This script needs to be sourced, not executed."
-echo "The environment changes won't persist in your shell."
-echo ""
-echo "Please use: source activate"
-echo "Or:         . ./activate"
-exit 1
+if test -t 1; then
+  warn ""
+  warn "WARNING: This script needs to be sourced, not executed."
+  warn "The environment changes won't persist in your shell."
+  warn ""
+  warn "Please use: source activate"
+  warn "Or:         . ./activate"
+  exit 1
+else
+  # assume user is either evaling output, or saving it as a script.
+  declare -p AI_PLAYGROUND_OLD_PATH AI_PLAYGROUND_OLD_PERL5LIB
+  declare -p AI_PLAYGROUND_OLD_PS1 PATH PERL5LIB PS1
+  declare -fp deactivate
+fi
