@@ -17,7 +17,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        cpanm --notest Path::Tiny Getopt::WonderBra common::sense  builtin
+        cpanm --notest Path::Tiny Getopt::WonderBra common::sense Scalar::Util
 
     - name: Run tests
       run: |
