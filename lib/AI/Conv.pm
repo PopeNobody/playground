@@ -6,7 +6,7 @@ use lib 'lib';
 use AI::Msg;
 use Storable qw(nstore retrieve);
 use Nobody::Util;
-use builtin qw(blessed);
+use Scalar::Util qw(blessed);
 use Nobody::JSON;
 use Path::Tiny;
 use Data::Dumper;

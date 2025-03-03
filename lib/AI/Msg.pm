@@ -7,7 +7,7 @@ use Nobody::Util;
 use Path::Tiny;
 use Data::Dumper;
 use common::sense;
-use builtin qw(blessed);
+use Scalar::Util qw(blessed);
 use Text::Wrap qw(wrap);
 
 {
