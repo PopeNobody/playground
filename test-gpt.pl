@@ -8,6 +8,7 @@ use autodie;
 use Nobody::Util;
 use Snatcher;
 our(@VERSION) = qw( 0 1 0 );
+use Getopt::WonderBra;
 
 use AI::Conv;
 use AI::Transact qw(transact);
