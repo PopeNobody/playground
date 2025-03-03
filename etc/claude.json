@@ -1,0 +1,12 @@
+{
+  "auth" : "bearer", 
+  "model" : "claude-3.7-sonnet",
+  "handle" : "claude",
+  "url" : {
+    "api" : "https://api.anthropic.com/v1",
+    "doc" : "https://docs.anthropic.com/en/api/", 
+    "home" : "https://claude.ai"
+  },
+  "provider" : "Anthropic",
+  "name" : "Claud Anthropic"
+}
