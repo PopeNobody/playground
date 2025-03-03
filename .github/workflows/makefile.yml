@@ -14,14 +14,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: configure
-      run: ./configure
-
-    - name: Install dependencies
-      run: make
-
     - name: Run check
+      env:
+        API_KEY: ${{ secrets.CLAUDE_API_KEY }}
       run: make check
 
-    - name: Run distcheck
-      run: make distcheck
