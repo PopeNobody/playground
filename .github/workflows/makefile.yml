@@ -22,4 +22,5 @@ jobs:
 
     - name: Run tests
       run: |
+        ln -sf claude.json etc/model.json
         PERL5LIB=$PWD/lib perl test-gpt.pl
