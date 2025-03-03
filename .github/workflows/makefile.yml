@@ -17,7 +17,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        cpanm --notest Path::Tiny
+        cpanm --notest Path::Tiny Getopt::WonderBra
 
     - name: Run tests
       run: |
