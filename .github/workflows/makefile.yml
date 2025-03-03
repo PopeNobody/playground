@@ -21,4 +21,4 @@ jobs:
 
     - name: Run tests
       run: |
-        PERL4LIB=$PWD/lib perl test-gpt.pl
+        PERL5LIB=$PWD/lib perl test-gpt.pl
