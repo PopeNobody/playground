@@ -3,23 +3,15 @@
 # Tests full workflow: server startup, script generation, execution, validation
 
 set -e
-
-# Set TMUX environment to avoid conflicting with user's session
-export TMUX_TMPDIR=$(mktemp -d $PWD/tmp-XXXXXXX)
+set -x
+# Copy necessary files from the original project
+ORIG_DIR="$PWD"  # Assumes script is run from project root
 
 # Working directory for test artifacts
-TEST_DIR=$(mktemp -d)
+TEST_DIR=$(mktemp -d $PWD/tmp-XXXXXXX)
 echo "Using test directory: $TEST_DIR"
 cd $TEST_DIR
-
-# Copy necessary files from the original project
-ORIG_DIR="$PWD/.."  # Assumes script is run from project root
-cp -r $ORIG_DIR/bin $ORIG_DIR/lib .
-mkdir -p ai_scripts ai_logs ai_sockets
-
-# Set up the environment for the test
-export API_KEY="test_key_123"
-export API_MOD="gpt-4o"  # Default model, server will infer the rest
+git clone $ORIG_DIR
 
 # Start tmux session
 TMUX_SESSION="ai-playground-test"

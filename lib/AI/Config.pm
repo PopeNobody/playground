@@ -14,10 +14,12 @@ our %CONFIG;
 
 # Load model config at initialization
 BEGIN {
+  $DB::single=1;
     my $file = path("etc/model.json");
     if ($file->exists) {
         my $json = $file->slurp;
         my $config = decode_json($json);
+        ddx($config);
         %CONFIG = %$config;
     } else {
         die "Cannot find model configuration file: etc/model.json";
@@ -33,6 +35,14 @@ sub get_api_info {
 sub get_api_key {
     return $ENV{API_KEY};
 }
-
+my ($DUMMY);
+BEGIN {
+  $DUMMY="$ENV{API_KEY}";
+  $DUMMY =~ s{.}{*}g;
+  ddx("DUMMY=$DUMMY");
+}
+sub redact {
+  return grep { s{$ENV{API_KEY}}{$DUMMY}g } @_;
+};
 1;
 

@@ -6,63 +6,97 @@ use Exporter 'import';
 use lib 'lib';
 use Nobody::Util;
 use LWP::UserAgent;
-use JSON;
+use JSON::Pretty;
 use Carp;
+use AI::Msg;
+use AI::Config qw(get_api_info get_api_key);
 
 our @EXPORT_OK = ('transact');
 
-# Stores AI configurations and UserAgent objects
-our %AI;
+# Persistent user agent and API info
+our $UA;
+our $API_URL;
+our $MODEL;
 
-sub transact {
-    my ($ai_id, $conv, $message) = @_;
+# Initialize globals at module load time
+BEGIN {
+    my $api_info = get_api_info();
+    my $api_key = get_api_key();
     
-    croak "AI ID is required" unless $ai_id;
-    croak "conv object required" unless $conv;
-    croak "Message is required" unless defined $message;
-
-    # Append user message to conv
-    $conv->add( AI::Msg->new( "user", "rich", $message ));
-
-    # Look up or initialize AI connection
-    my $ai = $AI{$ai_id} //= {
-        agent => LWP::UserAgent->new,
-        creds => _load_ai_config($ai_id),
-    };
-
-    my $url = $ai->{creds}->{url} or croak "No API URL for AI ID: $ai_id";
-    my $api_key = $ai->{creds}->{api_key} or croak "No API key for AI ID: $ai_id";
-
-    # Prepare HTTP request
-    my $req = HTTP::Request->new(POST => $url);
-    $req->header('Content-Type' => 'application/json');
-    $req->header('Authorization' => "Bearer $api_key");
-    $req->content($conv->as_json());
-    path("req.log")->spew($req->as_string);
-
-    # Send request and process response
-    my $res = $ai->{agent}->request($req);
-    path("res.log")->spew($res->as_string);
-    croak "Request failed: " . $res->status_line unless $res->is_success;
-
-    my $response_data = decode_json($res->decoded_content);
-    my $reply = $response_data->{choices}[0]{message}{content} // 'No response';
-
-    # Append AI response to conv
-    $conv->add(AI::Msg->new("assistant", $ai_id, $reply ));
-
-    return $reply;
+    if ($api_key) {
+        $UA = LWP::UserAgent->new;
+        $API_URL = $api_info->{url}->{api};
+        $MODEL = $api_info->{model};
+        
+        # Add default header for authentication
+        $UA->default_header('Authorization' => "Bearer $api_key");
+    }
 }
 
-sub _load_ai_config {
-    my ($ai_id) = @_;
-    # Replace this with actual AI API keys and URLs
-    my %config = (
-        'gpt'  => { url => 'https://api.openai.com/v1/chat/completions', api_key => $ENV{OPENAI_API_KEY} },
-        'gemini' => { url => 'https://gemini-ai.example/api', api_key => 'your-gemini-key' },
-    );
+sub transact {
+    my ($conv, $message) = @_;
     
-    return $config{$ai_id} || croak "No configuration for AI ID: $ai_id";
+    croak "conv object required" unless $conv;
+    croak "Message is required" unless defined $message;
+    croak "API not initialized - missing API key?" unless $UA;
+
+    # Append user message to conv
+    $conv->add(AI::Msg->new("user", "user", $message));
+    
+    # Prepare HTTP request
+    my $req = HTTP::Request->new(POST => "$API_URL/chat/completions");
+    $req->header('Content-Type' => 'application/json');
+    
+    # Prepare payload with OpenAI format
+    my $payload = {
+        model => $MODEL,
+        messages => [],
+        temperature => 0.7,
+        max_tokens => 4096
+    };
+    
+    # Extract messages from conversation (without 'name' field)
+    foreach my $msg (@{$conv->{msgs}}) {
+        push @{$payload->{messages}}, {
+            role => $msg->{role},
+            content => $msg->{text}
+        };
+    }
+    
+    $req->content(encode_json($payload));
+    
+    # Store redacted request for debugging
+    my $redacted_req = $req->clone;
+    $redacted_req->header('Authorization', 'Bearer [REDACTED]');
+    path("req.log")->spew($redacted_req->as_string);
+    
+    # Send request
+    my $res = $UA->request($req);
+    
+    # Store response for debugging
+    path("res.log")->spew($res->as_string);
+    
+    # Handle errors
+    unless ($res->is_success) {
+        my $error = "API request failed: " . $res->status_line . "\n\n";
+        $error .= "Request: " . $redacted_req->as_string . "\n\n";
+        $error .= "Response: " . $res->as_string;
+        croak $error;
+    }
+
+    # Parse response
+    my $response_data = decode_json($res->decoded_content);
+    my $reply = $response_data->{choices}[0]{message}{content};
+    
+    # Handle missing content
+    unless (defined $reply) {
+        $reply = "No response content received from API. Full response: " . encode_json($response_data);
+    }
+
+    # Append AI response to conv
+    $conv->add(AI::Msg->new("assistant", "ai", $reply));
+
+    return $reply;
 }
 
 1;
