@@ -18,6 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         cpanm --notest Path::Tiny Getopt::WonderBra common::sense Scalar::Util
+        cpanm --notest LWP
 
     - name: Run tests
       run: |
