@@ -8,6 +8,7 @@ use Path::Tiny;
 use Data::Dumper;
 use common::sense;
 use builtin qw(blessed);
+use Text::Wrap qw(wrap);
 
 {
   package
@@ -37,7 +38,7 @@ sub new {
     warn "$text is an existing filesystem object" if -e $text;
     my $self = {};
     $self->{role}=$role;
-    $self->{text}=$text;
+    $self->{text}=wrap("","",$text);
     $self->{name}=$name;
     bless $self, $class;
 }
