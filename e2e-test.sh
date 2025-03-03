@@ -8,7 +8,8 @@ set -x
 ORIG_DIR="$PWD"  # Assumes script is run from project root
 
 # Working directory for test artifacts
-TEST_DIR=$(mktemp -d $PWD/tmp-XXXXXXX)
+TEST_DIR=$PWD/test
+mkdir -p test
 echo "Using test directory: $TEST_DIR"
 cd $TEST_DIR
 git clone $ORIG_DIR
