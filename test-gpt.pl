@@ -15,11 +15,21 @@ use AI::Transact qw(transact);
 @ARGV = getopt("f:e",@ARGV);
 my $text = "Say goodnight, gracie!";
 my ($edit,$file) = ( 0, undef );
+sub help {
+  say "usage; $0 [ -f \$file ] [ -e ]";
+  say "";
+  say "   -f \$file: prompt from file \$file";
+  say "";
+  say "   -e edit first.  filename is still used, if provided";
+};
 while(($_=shift)ne'--'){
   if( $_ eq '-f') {
     $file=path(shift);
   } elsif ( $_ eq '-e' ) {
-    $edit=true;    
+    $edit=1;
+  } else {
+    die "bad arg: $_";
+  };
 };
 if($edit) {
   $file//="prompt.txt";
