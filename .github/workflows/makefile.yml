@@ -1,21 +1,24 @@
-name: Makefile CI
+name: Perl Test
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push, pull_request]
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-    - name: Run check
-      env:
-        API_KEY: ${{ secrets.CLAUDE_API_KEY }}
-      run: make check
+    - name: Set up Perl
+      uses: shogo82148/actions-setup-perl@v1
+      with:
+        perl-version: '5.32'
 
+    - name: Install dependencies
+      run: |
+        cpanm --notest Path::Tiny
+
+    - name: Run tests
+      run: |
+        PERL4LIB=$PWD/lib perl test-gpt.pl
