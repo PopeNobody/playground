@@ -20,28 +20,31 @@ our $MODEL;
 
 # Initialize globals at module load time
 BEGIN {
-    my $api_info = get_api_info();
-    my $api_key = get_api_key();
-    
-    if ($api_key) {
-        $UA = LWP::UserAgent->new;
-        $API_URL = $api_info->{url}->{api};
-        $MODEL = $api_info->{model};
-        
-        # Add default header for authentication
-        $UA->default_header('Authorization' => "Bearer $api_key");
-    }
+  my $api_info = get_api_info();
+  my $api_key = get_api_key();
+  croak "missing API key" unless defined $api_key;
+  if ($api_key) {
+    $UA = LWP::UserAgent->new;
+    $API_URL = $api_info->{url}->{api};
+    $MODEL = $api_info->{model};
+
+    # Add default header for authentication
+    $UA->default_header('Authorization' => "Bearer $api_key");
+  }
 }
 
 sub transact {
     my ($conv, $message) = @_;
     
     croak "conv object required" unless $conv;
-    croak "Message is required" unless defined $message;
     croak "API not initialized - missing API key?" unless $UA;
 
     # Append user message to conv
-    $conv->add(AI::Msg->new("user", "user", $message));
+    # If the user message is the empty string, then he just wants
+    # the response of the ai to the conversation as it stands ...
+    # but we make him do this explicitly by sending an empty string.
+    croak "Message is required" unless defined $message;
+    $conv->add(AI::Msg->new("user", "user", $message)) if length $message;
     
     # Prepare HTTP request
     my $req = HTTP::Request->new(POST => "$API_URL/chat/completions");
