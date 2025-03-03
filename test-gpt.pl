@@ -22,6 +22,9 @@ sub help {
   say "";
   say "   -e edit first.  filename is still used, if provided";
 };
+sub version {
+  say "@VERSION";
+};
 while(($_=shift)ne'--'){
   if( $_ eq '-f') {
     $file=path(shift);
