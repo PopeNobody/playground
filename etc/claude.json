@@ -1,6 +1,6 @@
 {
   "auth" : "bearer", 
-  "model" : "claude-3.7-sonnet",
+  "model" : "claude-3-7-sonnet-20250219",
   "handle" : "claude",
   "url" : {
     "api" : "https://api.anthropic.com/v1",
