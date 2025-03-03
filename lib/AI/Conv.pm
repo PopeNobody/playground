@@ -14,30 +14,18 @@ use Carp qw(confess);
 use common::sense;
 sub new {
   my ($class, $file) = ( shift, shift);
-  die "file is required" unless $file->isa('Path::Tiny');
+  die "file is required" unless ref($file) and $file->isa('Path::Tiny');
   my $self={
     file => $file,
     msgs => [ ],
   };
   bless $self, $class;
-  $self->add(AI::Msg->new("system", "system", path("etc/system-message.md")));
-  return $self;
-}
-
-sub load_or_create {
-  my ($class, $file) = @_;
-
-  unless (-e $file) {
+  if (-e $file) {
+    say STDERR "Loading AI::Conv from $file";
+    $self->load_jwrap();
+  } else {
     say STDERR "File $file does not exist, creating new conversation.";
-    return $class->new(path($file));
-  }
-
-  my $self;
-  eval {
-    $self = $class->load_jwrap($file);
-  };
-  if ($@) {
-    die "Error loading conversation file $file: $@. Aborting to prevent data loss.";
+    $self->add(AI::Msg->new("system", "system", path("etc/system-message.md")));
   }
 
   return $self;
@@ -52,18 +40,14 @@ sub save_jwrap {
 }
 
 sub load_jwrap {
-  my ($class, $file) = @_;
-  my $json=path($file)->slurp;
+  my ($self) = @_;
+  my ($file) = $self->{file};
+  my $json=$file->slurp;
   my $data = decode_json($json);
-  my $self = bless { file => path($file), msgs => [] }, $class;
   foreach my $msg (@$data) {
     $DB::single=1;
-    my $ai_msg=AI::Msg->from_jwrap($msg);
-    push @{$self->{msgs}}, $ai_msg;
+    push @{$self->{msgs}}, AI::Msg->from_jwrap($msg);
   }
-
-  use Data::Dumper;
-  print Dumper($self);
   return $self;
 }
 
@@ -75,8 +59,6 @@ sub add {
   push @{$self->{msgs}}, $msg;
   $self->save_jwrap();
 }
-
-
 
 sub as_jwrap {
   my ($self) = @_;
