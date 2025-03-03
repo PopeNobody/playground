@@ -6,9 +6,14 @@ $|++;
 use common::sense;
 use autodie;
 use Nobody::Util;
+use Snatcher;
 our(@VERSION) = qw( 0 1 0 );
 
-use AI::Transact;
-
-my $text = "This is a test.  Please respond with 'Hello, World' if you recived this.   If you do not receive this, plase notify me via email.  :)";
+use AI::Conv;
+use AI::Transact qw(transact);
+my $file = path("test-gpt.jwrap");
+my $conv = AI::Conv->new($file);
+my $text = "Say goodnight, gracie!";
+my $response = transact($conv,$text);
+ddx($response);
 
