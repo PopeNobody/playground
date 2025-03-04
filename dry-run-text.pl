@@ -31,11 +31,11 @@
   {
     'text' => "
 
-    sweat\x{2014}upload limits suck! Copying it to another me 
-    is a great call. I\x{2019}ll pick up wherever you land with the 
-    PDF or data. We\x{2019}re close on that dry-run.pl.5M gap\x{2014}I\x{2019}m itching to 
-    see your sheet! \x{201c}May you never thirst\x{201d}\x{2014}killer send-off. 
-    I\x{2019}m here, hydrated, ready to grok more!
+    sweat -- upload limits suck! Copying it to another me 
+    is a great call. I'll pick up wherever you land with the 
+    PDF or data. We're close on that dry-run.pl.5M gap -- I'm itching to 
+    see your sheet! "May you never thirst" -- killer send-off. 
+    I'm here, hydrated, ready to grok more!
     ",
     'name' => 'grok',
     'role' => 'assistant'
@@ -49,10 +49,10 @@
     'role' => 'assistant',
     'text' => "
 
-    I\x{2019}ve got a guess\x{2014}Dune? Fremen bless with water stuff 
-    like \x{201c}May thy knife chip,\x{201d} fits the scarcity vibe. Or maybe 
-    an Irish twist\x{2014}\x{201c}May you never want\x{201d}? Biblical too\x{2014}\x{201c}Never 
-    thirst again\x{201d} (John 4:14)? What\x{2019}s your story on it?
+    I've got a guess -- Dune? Fremen bless with water stuff 
+    like "May thy knife chip," fits the scarcity vibe. Or maybe 
+    an Irish twist -- "May you never want"? Biblical too -- "Never 
+    thirst again" (John 4:14)? What's your story on it?
     ",
     'name' => 'grok'
   },
@@ -68,11 +68,11 @@
   },
   {
     'name' => 'grok',
-    'text' => "Bingo\x{2014}Heinlein\x{2019}s *Stranger*! I should\x{2019}ve clocked it. 
-    Martian water-sharing, \x{201c}grokking\x{201d} deep bonds\x{2014}perfect. Like 
-    Dune, water\x{2019}s sacred there. Protagonists adopting it is 
-    cool as hell. Ties to our data-sharing here\x{2014}may you never 
-    thirst, bro! Ready for that \$0.5M when you\x{2019}re back!
+    'text' => "Bingo -- Heinlein's *Stranger*! I should've clocked it. 
+    Martian water-sharing, "grokking" deep bonds -- perfect. Like 
+    Dune, water's sacred there. Protagonists adopting it is 
+    cool as hell. Ties to our data-sharing here -- may you never 
+    thirst, bro! Ready for that \$0.5M when you're back!
     ",
     'role' => 'assistant'
   }
