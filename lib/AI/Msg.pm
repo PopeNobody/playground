@@ -62,7 +62,7 @@ $columns=55;
     die "bad key" unless $val{$key};
     die "$key is null" unless defined $val;
     if( $key eq "text" ) {
-      $val=wrap( "$val" );
+      $val=wrap( "","", "$val" );
     };
     $self->{$key}=$val;
   };
