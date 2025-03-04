@@ -15,12 +15,6 @@ my ($data) = eval path("$base-text.pl")->slurp;
 my ($conv) = AI::Conv->new(path("$base.jwrap"));
 my ($idx) = shift @$data;
 my (%obj);
-ddx($data);
-print "\n\n\n";
-my ($msg) = AI::Msg->new("role","name","text");
-ddx( $msg );
-$conv->add($msg);
-exit(0);
 for($data->[$idx]) {
   *obj=$_;
   $conv->add(AI::Msg->new($obj{role},$obj{name},$obj{text}));
