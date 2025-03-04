@@ -19,12 +19,7 @@ sub file {
 };
 sub new {
   my ($class, $file) = ( shift, shift);
-<<<<<<< HEAD
   ($class) = ( ref($class) || $class );
-||||||| 70d1d19
-=======
-  $class=ref($class) if ref($class);
->>>>>>> df0c2f77c184d2d0fad0dd2254410fc6217e73a2
   die "file is required" unless ref($file) and $file->isa('Path::Tiny');
   my $self={
     file => $file,
