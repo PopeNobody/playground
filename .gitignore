@@ -2,3 +2,4 @@ test-gpt.jwrap
 *.log
 test-gpt.jwrap.old
 *.jwrap
+*.hide
