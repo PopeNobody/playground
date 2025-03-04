@@ -14,20 +14,19 @@ my ($base) = map { path($_) } grep { s{[.]pl$}{} } $Script;
 my ($data) = eval path("$base-text.pl")->slurp;
 my ($conv) = AI::Conv->new(path("$base.jwrap"));
 my ($idx) = shift @$data;
-my (%obj);
 ddx($data);
 my ($msg) = AI::Msg->new("role","name","text");
 ddx( $msg );
-for($data->[$idx]) {
-  *obj=$_;
-  $conv->add(AI::Msg->new($obj{role},$obj{name},$obj{text}));
-  my $i;
-  for($i=1000;$i<9999;++$i)
-  {
-    next if -e "$base.$i.jwrap";
-    last;
-  };
+my $i;
+for($i=1000;$i<9999;++$i)
+{
+  next if -e "$base.$i.jwrap";
   system("cp", "$base.jwrap", "$base.$i.jwrap");
+  last;
+};
+for($data->[$idx]) {
+  ddx($idx,$_);
+  $conv->add(AI::Msg->new($_->{role},$_->{name},$_->{text}));
   $conv=$conv->new($conv->file);
   ddx($conv);
 };

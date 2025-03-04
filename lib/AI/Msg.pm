@@ -10,43 +10,28 @@ use Carp qw( confess carp croak cluck );
 use common::sense;
 use Scalar::Util qw(blessed);
 use Text::Wrap qw(wrap $columns );
-$columns=55;
-{
-  package
-  Text;
-  sub lines {
-    return map { lines($_) } @_ unless 1==@_;
-    local($_)=shift;
-    if( ref eq 'GLOB' && defined(fileno($_)) ) {
-      return <$_>;
-    } elsif ( blessed($_) and $_->can("slurp") ) {
-      return $_->slurp;
-    } elsif ( ref eq 'ARRAY' ) {
-      return lines(@$_);
-    } else {
-      return split(m{\n});
-    };
-  }
+our(@keys);
+BEGIN {
+  @keys=qw(role name text);
+};
+sub mayslurp {
+  local($_)=shift;
+  return unless blessed($_);
+  return unless $_->can("slurp");
+  return $_->slurp;
 };
 sub new {
-    my ($class, $role, $name, $text) = @_;
+    my ($class) = shift;
     $_ = (ref || $_) for $class;
     die "class must be defined" unless defined $class;
-    die "role must be defined" unless defined $role;
-    die "name must be defined" unless defined $name;
-    die "text must be defined" unless defined $text;
-    $text=join("\n", flatten($text)) if ref($text) eq 'ARRAY';
-    if(ref($text) eq 'ARRAY') {
-      local(@_)=flatten($text);
-      $text=join("\n",@_);
+    
+    my $self = { grep { defined || die } map { $_, shift } @keys }; 
+    ddx( $self );
+    for($self->{text}){
+      @_=flatten($_);
+      $_=join("\n",@_);
+      $_=wrap("","",$_);
     };
-    if(blessed($text) and $text->can("slurp")){
-      $text=$text->slurp;
-    };
-    warn "$text is a ref" if ref($text);
-    warn "$text is an existing filesystem object" if -e $text;
-    my $self = { role=>$role, name=>$name, text=>$text };
-    $text=wrap("","",$text);
     bless $self, $class;
 }
 
@@ -54,10 +39,10 @@ sub from_jwrap {
     my ($class, $data) = @_;
     confess "$class must never be null" unless defined $class;
     confess "$data must not be mull" unless defined $data;
-    confess "data->{role} not defined" unless defined $data->{role};
-    confess "data->{name} not defined" unless defined $data->{name};
-    confess "data->{text} not defined" unless defined $data->{text};
-    ddx( [ ref($class), $class, $data ] );
+    ddx( $data );
+    for(qw(role name text)) {
+      confess "data->{$_} not defined" unless defined $data->{$_};
+    };
     return $class->new($data->{role}, $data->{name}, $data->{text});
 }
 
