@@ -13,7 +13,8 @@ sub encode_json($) {
     ($_)=$json->encode(@_);
   };
   return $_ if defined;
-  die  join("\n\n",$@,pp(@copy));
+  ddx(\@copy);
+  die join("\n\n",$@,pp(@copy));
 };
 sub decode_json {
   my @copy=@_;

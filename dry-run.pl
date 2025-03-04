@@ -11,16 +11,17 @@ our(@VERSION) = qw( 0 1 0 );
 use AI::Conv;
 use AI::Transact qw(transact);
 my ($base) = map { path($_) } grep { s{[.]pl$}{} } $Script;
-my ($data) = eval path("$base-text.pl")->slurp;
-my ($conv) = AI::Conv->new(path("$base.jwrap"));
-my ($idx) = shift @$data;
-my (%obj);
-ddx($data);
-print "\n\n\n";
+#    my ($data) = eval path("$base-text.pl")->slurp;
+#    my ($conv) = AI::Conv->new(path("$base.jwrap"));
+#    my ($idx) = shift @$data;
+#    my (%obj);
+#    ddx($data);
+#    print "\n\n\n";
 my ($msg) = AI::Msg->new("role","name","text");
 ddx( $msg );
-$conv->add($msg);
+$msg->role=undef;
 exit(0);
+__DATA__
 for($data->[$idx]) {
   *obj=$_;
   $conv->add(AI::Msg->new($obj{role},$obj{name},$obj{text}));

@@ -10,16 +10,15 @@ use Path::Tiny;
 our @EXPORT_OK = qw(get_api_info get_api_key);
 
 # Storage for model configuration
-our %CONFIG;
+our %config;
 
 # Load model config at initialization
 BEGIN {
-  $DB::single=$DB::single=1;
   my $file = path("etc/model.json");
   if ($file->exists) {
     my $json = $file->slurp;
     my $config = decode_json($json);
-    %CONFIG = %$config;
+    %config = %$config;
   } else {
     die "Cannot find model configuration file: etc/model.json";
   }
@@ -27,7 +26,7 @@ BEGIN {
 
 # Get API info
 sub get_api_info {
-  return { %CONFIG };
+  return { %config };
 }
 
 # Get API key

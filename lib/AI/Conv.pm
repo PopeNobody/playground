@@ -14,6 +14,7 @@ use Carp qw(confess);
 use common::sense;
 sub new {
   my ($class, $file) = ( shift, shift);
+  ($class) = ( ref($class) || $class );
   die "file is required" unless ref($file) and $file->isa('Path::Tiny');
   my $self={
     file => $file,
@@ -30,22 +31,38 @@ sub new {
 
   return $self;
 }
-
+sub file {
+  my ($self)=shift;
+  my ($file)=$self->{file};
+  return $file;
+};
 sub save_jwrap {
   my ($self) = @_;
   my $file = $self->{file};
   $file->parent->mkdir;
-  $file->spew(encode_json($self->as_jwrap));
+  my $jwrap=$self->as_jwrap;
+  print join(", ",map { ref } @$jwrap);
+
+  $file->spew(encode_json($jwrap));
   return $self;
 }
 
 sub load_jwrap {
   my ($self) = @_;
+  die "self must be defined" unless defined $self;
+  die "self must be ref" unless ref($self);
   my ($file) = $self->{file};
+  die "file must be defined" unless defined $file;
+  die "file must be ref" unless ref($file);
+  die "file must slurp" unless $file->can("slurp");
   my $json=$file->slurp;
-  my $data = decode_json($json);
+  my $data;
+  eval {
+    $data  = decode_json($json);
+  };
+  die "$@ ($json)" if "$@";
   foreach my $msg (@$data) {
-    $DB::single=1;
+    ddx($msg);
     push @{$self->{msgs}}, AI::Msg->from_jwrap($msg);
   }
   return $self;
