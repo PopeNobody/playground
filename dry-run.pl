@@ -12,11 +12,9 @@ use AI::Conv;
 use AI::Transact qw(transact);
 my ($base) = map { path($_) } grep { s{[.]pl$}{} } $Script;
 my ($data) = eval path("$base-text.pl")->slurp;
-my ($conv) = AI::Conv->new(path("$base.jwrap"));
 my ($idx) = shift @$data;
-ddx($data);
-my ($msg) = AI::Msg->new("role","name","text");
-ddx( $msg );
+ddx( { idx=>$idx } );
+my ($conv) = AI::Conv->new(path("$base.jwrap"));
 my $i;
 for($i=1000;$i<9999;++$i)
 {
@@ -24,13 +22,13 @@ for($i=1000;$i<9999;++$i)
   system("cp", "$base.jwrap", "$base.$i.jwrap");
   last;
 };
-for($data->[$idx]) {
-  ddx($idx,$_);
+for($data->[$idx++]) {
   $conv->add(AI::Msg->new($_->{role},$_->{name},$_->{text}));
   $conv=$conv->new($conv->file);
   ddx($conv);
 };
+ddx( { idx=>$idx } );
 unshift(@$data,++$idx);
+spit("$base-text.pl",Dumper(@$data));
 use Data::Dumper;
 $Data::Dumper::Terse=1;
-spit("$base-test.pl",Dumper(@$data));
