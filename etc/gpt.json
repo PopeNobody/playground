@@ -1,0 +1,14 @@
+{
+  "name" : "ChatGPT",
+  "handle" : "gpt",
+  "url" : {
+    "api" : "https://api.openai.com/v1",
+    "home" : "https://chatgpt.com/",
+    "doc" : "https://platform.openai.com/docs"
+  },
+  "model" : "gpt-4o",
+  "auth" : {
+    "type" : "bearer",
+    "env_key" : "OPENAI_API_KEY"
+  }
+}
