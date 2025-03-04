@@ -4,7 +4,6 @@ export PATH:=$(PWD)/bin$(if $(PATH),:$(PATH),)
 
 
 check:
-	echo perl test-gpt.pl
 	vi-perl dry-run.pl
 
 distcheck:check

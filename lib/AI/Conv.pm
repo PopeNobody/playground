@@ -12,9 +12,19 @@ use Path::Tiny;
 use Data::Dumper;
 use Carp qw(confess);
 use common::sense;
+sub file {
+  my ($self) = shift;
+  my ($file) = $self->{file};
+  $file;
+};
 sub new {
   my ($class, $file) = ( shift, shift);
+<<<<<<< HEAD
   ($class) = ( ref($class) || $class );
+||||||| 70d1d19
+=======
+  $class=ref($class) if ref($class);
+>>>>>>> df0c2f77c184d2d0fad0dd2254410fc6217e73a2
   die "file is required" unless ref($file) and $file->isa('Path::Tiny');
   my $self={
     file => $file,
@@ -62,7 +72,6 @@ sub load_jwrap {
   };
   die "$@ ($json)" if "$@";
   foreach my $msg (@$data) {
-    ddx($msg);
     push @{$self->{msgs}}, AI::Msg->from_jwrap($msg);
   }
   return $self;

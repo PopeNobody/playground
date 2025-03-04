@@ -18,8 +18,9 @@ my ($base) = map { path($_) } grep { s{[.]pl$}{} } $Script;
 #    ddx($data);
 #    print "\n\n\n";
 my ($msg) = AI::Msg->new("role","name","text");
+$msg->vi 
 ddx( $msg );
-$msg->role=undef;
+$msg->ole=undef;
 exit(0);
 __DATA__
 for($data->[$idx]) {

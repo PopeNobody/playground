@@ -9,8 +9,8 @@ use Data::Dumper;
 use Carp qw( confess carp croak cluck );
 use common::sense;
 use Scalar::Util qw(blessed);
-use Text::Wrap qw(wrap);
-
+use Text::Wrap qw(wrap $columns );
+$columns=55;
 {
   package
   Text;
@@ -80,12 +80,20 @@ sub new {
     die "name must be defined" unless defined $name;
     die "text must be defined" unless defined $text;
     $text=join("\n", flatten($text)) if ref($text) eq 'ARRAY';
+    if(ref($text) eq 'ARRAY') {
+      local(@_)=flatten($text);
+      $text=join("\n",@_);
+    };
     if(blessed($text) and $text->can("slurp")){
       $text=$text->slurp;
     };
     warn "$text is a ref" if ref($text);
     warn "$text is an existing filesystem object" if -e $text;
     my $self = mk_self();
+    die "$text is a ref" if ref($text);
+    die "$text is an existing filesystem object" if -e $text;
+    $text=wrap("","",$text);
+    my $self = {};
     $self->{role}=$role;
     $self->{text}=wrap("","",$text);
     $self->{name}=$name;

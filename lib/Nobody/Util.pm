@@ -104,10 +104,14 @@ sub mkdir_p($;$) {
   mkdir($dir,$mode); 
 };
 sub flatten {
-  return map { flatten($_) } @_ unless @_==1;
-  local($_)=shift;
-  no warnings 'uninitialized';
-  return flatten(@$_) if ref($_) eq 'ARRAY';
+  for(my $i=0;$i<@_;$i++){
+    if(ref($_[$i]) eq 'ARRAY') {
+      say "(@_)";
+      splice(@_,$i,1,@{$_[$i]});
+      say "(@_)";
+    };
+  };
+  return @_;
 };
 sub getfds();
 BEGIN {
