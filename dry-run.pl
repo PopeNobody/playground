@@ -18,7 +18,6 @@ my ($base) = map { path($_) } grep { s{[.]pl$}{} } $Script;
 #    ddx($data);
 #    print "\n\n\n";
 my ($msg) = AI::Msg->new("role","name","text");
-$msg->vi 
 ddx( $msg );
 $msg->ole=undef;
 exit(0);
