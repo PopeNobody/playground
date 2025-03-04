@@ -16,19 +16,21 @@ BEGIN {
 };
 sub mayslurp {
   local($_)=shift;
-  return unless blessed($_);
-  return unless $_->can("slurp");
+  return $_ unless blessed($_);
+  return $_ unless $_->can("slurp");
   return $_->slurp;
 };
 sub new {
     my ($class) = shift;
     $_ = (ref || $_) for $class;
     die "class must be defined" unless defined $class;
-    
-    my $self = { grep { defined || die } map { $_, shift } @keys }; 
-    ddx( $self );
+    my $self = {};
+    for(@keys) {
+      die "$_ is null" unless defined($self->{$_}=shift);
+    }; 
     for($self->{text}){
       @_=flatten($_);
+      @_=map { mayslurp($_) } @_;
       $_=join("\n",@_);
       $_=wrap("","",$_);
     };
@@ -39,7 +41,6 @@ sub from_jwrap {
     my ($class, $data) = @_;
     confess "$class must never be null" unless defined $class;
     confess "$data must not be mull" unless defined $data;
-    ddx( $data );
     for(qw(role name text)) {
       confess "data->{$_} not defined" unless defined $data->{$_};
     };
