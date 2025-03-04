@@ -12,8 +12,14 @@ use Path::Tiny;
 use Data::Dumper;
 use Carp qw(confess);
 use common::sense;
+sub file {
+  my ($self) = shift;
+  my ($file) = $self->{file};
+  $file;
+};
 sub new {
   my ($class, $file) = ( shift, shift);
+  $class=ref($class) if ref($class);
   die "file is required" unless ref($file) and $file->isa('Path::Tiny');
   my $self={
     file => $file,
@@ -45,7 +51,6 @@ sub load_jwrap {
   my $json=$file->slurp;
   my $data = decode_json($json);
   foreach my $msg (@$data) {
-    $DB::single=1;
     push @{$self->{msgs}}, AI::Msg->from_jwrap($msg);
   }
   return $self;

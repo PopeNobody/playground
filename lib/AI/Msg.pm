@@ -8,8 +8,8 @@ use Path::Tiny;
 use Data::Dumper;
 use common::sense;
 use Scalar::Util qw(blessed);
-use Text::Wrap qw(wrap);
-
+use Text::Wrap qw(wrap $columns );
+$columns=55;
 {
   package
   Text;
@@ -30,12 +30,16 @@ use Text::Wrap qw(wrap);
 sub new {
     my ($class, $role, $name, $text) = @_;
     $_ = (ref || $_) for $class;
-    $text=join("\n", flatten($text)) if ref($text) eq 'ARRAY';
+    if(ref($text) eq 'ARRAY') {
+      local(@_)=flatten($text);
+      $text=join("\n",@_);
+    };
     if(blessed($text) and $text->can("slurp")){
       $text=$text->slurp;
     };
-    warn "$text is a ref" if ref($text);
-    warn "$text is an existing filesystem object" if -e $text;
+    die "$text is a ref" if ref($text);
+    die "$text is an existing filesystem object" if -e $text;
+    $text=wrap("","",$text);
     my $self = {};
     $self->{role}=$role;
     $self->{text}=wrap("","",$text);

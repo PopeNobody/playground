@@ -14,7 +14,6 @@ our %CONFIG;
 
 # Load model config at initialization
 BEGIN {
-  $DB::single=$DB::single=1;
   my $file = path("etc/model.json");
   if ($file->exists) {
     my $json = $file->slurp;
