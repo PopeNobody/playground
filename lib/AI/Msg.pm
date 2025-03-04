@@ -20,19 +20,30 @@ sub mayslurp {
   return $_ unless $_->can("slurp");
   return $_->slurp;
 };
+sub check {
+  my $hash=shift;
+  for(@keys) {
+    confess "$_ must not be null" unless defined $hash->{$_};
+  };
+};
 sub new {
     my ($class) = shift;
     $_ = (ref || $_) for $class;
     die "class must be defined" unless defined $class;
-    my $self = {};
+    my $self = bless({},$class);
     for(@keys) {
-      die "$_ is null" unless defined($self->{$_}=shift);
-    }; 
+      $self->{$_}=shift;
+    };
     for($self->{text}){
+      ddx($_);
       @_=flatten($_);
+      ddx(\@_);
       @_=map { mayslurp($_) } @_;
+      ddx(\@_);
       $_=join("\n",@_);
+      ddx($_);
       $_=wrap("","",$_);
+      ddx($_);
     };
     bless $self, $class;
 }
