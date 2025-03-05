@@ -1,9 +1,6 @@
 {
   "name" : "Google Gemini",
-  "auth" : {
-    "type" : "bearer",
-    "env_key" : "GEMINI_API_KEY"
-  },
+  "auth" : "bearer",
   "handle" : "gem",
   "url" : {
     "home" : "https://gemini.google.com",

@@ -38,6 +38,27 @@ sub basename {
   $self=path($self) unless ref($self);
   $self->basename;
 };
+sub flatten {
+  my $i=0;
+  local(@_)=@_;
+  while($i<@_) {
+    for($_[$i]){
+      if(ref($_) eq 'ARRAY') {
+        splice(@_,$i,1,@{$_[$i]});
+      } else {
+        ++$i;
+      };
+    };
+  };
+  return @_;
+};
+sub safe_isa($$){
+  my ($ref,$class) = @_;
+  return 0 unless ref($ref);
+  return 0 unless blessed($ref);
+  return 0 unless $ref->isa($class);
+  return 1;
+};
 sub dirname {
   my ($self)=shift;
   $self=path($self) unless ref($self);
@@ -56,10 +77,10 @@ BEGIN {
   push(@EXPORT_OK,@FindBin::EXPORT_OK);
   push(@EXPORT_OK,@Nobody::PP::EXPORT_OK);
   push(@EXPORT_OK, @carp, @pp, qw{
-        WNOHANG avg class deparse dirname file_id getcwd matrix max
+        WNOHANG avg class deparse dirname file_id getcwd matrix max vcmp
         maybeRef min mkdir_p mkref open_fds pasteLines path serdate spit
         spit_fh suck suckdir sum uniq setfl getfl nonblock flatten
-        isarray
+        safe_isa
         }
       );
   push(@EXPORT_OK, @Scalar::Util::EXPORT_OK);
@@ -91,6 +112,19 @@ BEGIN {
   };
 }
 sub mkdir_p($;$);
+sub QX {
+  if(!defined(wantarray)) {
+    QX(@_);
+    return;
+  } elsif( !wantarray ) {
+    return join("", "@_");
+  } else {
+    open(local *STDIN,"-|",@_);
+    local(@_)=<STDIN>;
+    close(STDIN);
+    @_;
+  }
+};
 sub mkdir_p($;$) {
   no autodie qw(mkdir);
   my ($dir,$mode)=@_;
@@ -102,16 +136,6 @@ sub mkdir_p($;$) {
   pop(@dir);
   mkdir_p(join("/",@dir),$mode);
   mkdir($dir,$mode); 
-};
-sub flatten {
-  for(my $i=0;$i<@_;$i++){
-    if(ref($_[$i]) eq 'ARRAY') {
-      say "(@_)";
-      splice(@_,$i,1,@{$_[$i]});
-      say "(@_)";
-    };
-  };
-  return @_;
 };
 sub getfds();
 BEGIN {
@@ -142,9 +166,13 @@ BEGIN {
     if(@_ && $_[0]) {
       map { [ $_, readlink "$dn$_" ] } open_fds();
     } else {
-      opendir(my $dir,$dn);
-      my $no = fileno($dir);
-      grep { $_ ne '.' && $_ ne '..' && ($no-$_) } readdir($dir);
+      @_ = suckdir($dn);
+      @_ = grep { -e } @_;
+      @_ = grep { s{.*/}{} } @_;
+#          opendir(my $dir,$dn);
+#          local(@_)=readdir($dir);
+#          close($dir);
+#          @_ = grep { -e "$dn/$_" && $_ ne '.' && $_ ne '..' } @_;
     }
   };
   sub getcwd {
@@ -228,7 +256,24 @@ sub maybeRef($) {
   carp "use class, not maybeRef";
   goto \&class;
 };
+sub vcmp {
+  my ($a,$b) = (
+    @_ == 2 ? (shift,shift) :
+    @_ ? (undef, undef, warn "Warning:  vcmp wants 2 args or none") :
+    ($a,$b)
+  );
 
+  my (@a)=split m{(\D+)}, $a;
+  my (@b)=split m{(\D+)}, $b;
+  no warnings;
+  while( @a and @b and $a[0] eq $b[0] ) {
+    shift @a;
+    shift @b;
+  };
+  return 0 unless @a or @b;
+  return @a <=> @b unless @a and @b;
+  return $a[0] <=> $b[0] || $a[0] cmp $b[0];  
+};
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst);
 my @x=qw(sec min hour mday mon year wday yday isdst);
 sub serdate(;$)
@@ -249,6 +294,8 @@ sub deparse {
 #  use Carp;
 #  sub test_date(;$) {
 #    $,=" ";
+#    $DB::single=1;
+#    $DB::single=1;
 #    my $time=time;
 #    say $time;
 #    my (@gm);

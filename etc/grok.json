@@ -1,8 +1,5 @@
 {
-  "auth" : {
-    "type" : "bearer",
-    "env_key" : "XAI_API_KEY"
-  },
+  "type" : "bearer",
   "model" : "grok-2-latest",
   "handle" : "grok",
   "url" : {

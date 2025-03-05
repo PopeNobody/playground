@@ -3,6 +3,18 @@
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
+use FindBin qw($Bin);
+use Path::Tiny;
+open(STDOUT,">&STDERR");
+BEGIN {
+  for(map { "$_" } $Bin) {
+    s{/s?bin$}{};
+    $FindBin::prefix="$_";
+  };    
+};
+BEGIN {
+  use lib $FindBin::prefix."/lib";
+};
 use common::sense;
 #use autodie;
 use Nobody::Util;
@@ -10,14 +22,13 @@ use Snatcher;
 our(@VERSION) = qw( 0 1 0 );
 use AI::Conv;
 use AI::Transact qw(transact);
-my ($base) = map { path($_) } grep { s{[.]pl$}{} } $Script;
-ddx( { base=>$base } );
-die "no data file: $base-text.pl" unless -e "$base-text.pl";
-my ($data) = eval path("$base-text.pl")->slurp;
-die "no test data" unless defined $data;
-my ($idx) = shift @$data;
-ddx( { idx=>$idx } );
-my ($conv) = AI::Conv->new(path("$base.jwrap"));
+use DryRun;
+sub next;
+my ($conv,$convf);
+($convf)=(@ARGV ? shift : "dat/dry-run/conv.jwrap");
+my ($base)="dat/dry-run/conv";
+$convf=path($convf);
+$conv=AI::Conv->new(path("$convf"));
 my $i;
 for($i=1000;$i<9999;++$i)
 {
@@ -25,6 +36,14 @@ for($i=1000;$i<9999;++$i)
   system("cp", "$base.jwrap", "$base.$i.jwrap");
   last;
 };
+ddx($conv);
+
+my ($msg) = DryRun::next();
+$msg=AI::Msg->new($msg);
+$conv->add($msg);
+ddx($conv);
+
+__DATA__
 for($data->[$idx++]) {
   $conv->add(AI::Msg->new($_->{role},$_->{name},$_->{text}));
   $conv=$conv->new($conv->file);

@@ -17,10 +17,25 @@ sub file {
   my ($file) = $self->{file};
   $file;
 };
+sub check {
+  my ($self)=shift;
+  die "check: self is null" unless defined($self);
+  die "check: not blessed" unless blessed($self);
+  die "check: not blessed right" unless $self->isa("AI::Conv");
+  my ($file)=$self->{file};
+  die "check: file is null" unless defined($file);
+  die "check: file is not blessed" unless blessed($file);
+  die "check: file is not blessed right" unless($file->isa("Path::Tiny"));
+  for(@{$self->{msgs}}){
+    die "check: msg is not a msg" unless $_->isa("AI::Msg");
+  };
+  return $self;
+};
 sub new {
   my ($class, $file) = ( shift, shift);
   ($class) = ( ref($class) || $class );
   die "file is required" unless ref($file) and $file->isa('Path::Tiny');
+  $file=$file->absolute,
   my $self={
     file => $file,
     msgs => [ ],
@@ -31,10 +46,14 @@ sub new {
     $self->load_jwrap();
   } else {
     say STDERR "File $file does not exist, creating new conversation.";
-    $self->add(AI::Msg->new("system", "system", path("etc/system-message.md")));
+    my $path=path("etc/system-message.md");
+    ddx( { path=>$path } );
+    my $msg = AI::Msg->new("system", "system", $path);
+    ddx( { "ref(\$msg)"=>ref($msg) } );
+    $self->add($msg);
   }
 
-  return $self;
+  return $self->check();
 }
 sub file {
   my ($self)=shift;
@@ -46,7 +65,7 @@ sub save_jwrap {
   my $file = $self->{file};
   $file->parent->mkdir;
   my $jwrap=$self->as_jwrap;
-  print join(", ",map { ref } @$jwrap);
+  say STDERR "[", join(", ",map { ref } @$jwrap), "]";
 
   $file->spew(encode_json($jwrap));
   return $self;
@@ -66,16 +85,20 @@ sub load_jwrap {
     $data  = decode_json($json);
   };
   die "$@ ($json)" if "$@";
-  foreach my $msg (@$data) {
-    push @{$self->{msgs}}, AI::Msg->from_jwrap($msg);
+  my $last=pop(@$data);
+  foreach my $raw (@$data) {
+    my $msg=AI::Msg->from_jwrap($raw);
+    $self->add($msg);
   }
+  $last=AI::Msg->new($last);
+  $self->add($last);
   return $self;
 }
 
 sub add {
   my ($self, $msg) = @_;
   confess "add should be called with an AI::Msg object" 
-  unless $msg->isa("AI::Msg");
+  unless safe_isa($msg,"AI::Msg");
 
   push @{$self->{msgs}}, $msg;
   $self->save_jwrap();

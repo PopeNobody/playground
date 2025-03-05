@@ -101,5 +101,7 @@ sub transact {
 
     return $reply;
 }
+sub model_list {
 
+}
 1;
