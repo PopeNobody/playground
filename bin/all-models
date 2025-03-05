@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+# vim: ts=2 sw=2 ft=perl
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+  if 0;
+$|++;
+use FindBin;
+use common::sense;
+use autodie;
+use Nobody::Util;
+use Snatcher;
+our(@VERSION) = qw( 0 1 0 );
+use Getopt::WonderBra;
+use AI::Conv;
+use AI::Transact qw(transact);
+
+sub version {
+  say "@VERSION";
+};
+$file = path("test-gpt.jwrap");
+my $response = AI::Transact::list_models;
+ddx($response);
+

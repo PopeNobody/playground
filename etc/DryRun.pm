@@ -1,5 +1,20 @@
-[
-  0,
+package DryRun;
+use Nobody::Util;
+
+our($file)= path("etc/dry-run-next");
+$file->spew("0") unless -e $file;
+our($ptr)=map { split } $file->slurp;
+our(@msgs);
+sub next() {
+  if($ptr<=@msgs){
+    my $res=$msgs[$ptr];
+    path("etc/dry-run-next")->spew(++$ptr);
+    return $res;
+  } else {
+    return null;
+  };
+};
+*msgs=[
   {
     'name' => 'user',
     'text' => [

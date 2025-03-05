@@ -4,6 +4,6 @@ export PATH:=$(PWD)/bin$(if $(PATH),:$(PATH),)
 
 
 check:
-	vi-perl dry-run.pl
+	vi-perl bin/dry-run
 
 distcheck:check
