@@ -3,6 +3,18 @@
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
+use FindBin qw($Bin);
+use Path::Tiny;
+open(STDOUT,">&STDERR");
+BEGIN {
+  for(map { "$_" } $Bin) {
+    s{/s?bin$}{};
+    $FindBin::prefix="$_";
+  };    
+};
+BEGIN {
+  use lib $FindBin::prefix."/lib";
+};
 use common::sense;
 use autodie;
 use Nobody::Util;

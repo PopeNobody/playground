@@ -3,3 +3,5 @@ test-gpt.jwrap
 test-gpt.jwrap.old
 *.jwrap
 *.hide
+prompt.txt
+etc/dry-run-next
