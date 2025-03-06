@@ -80,7 +80,7 @@ BEGIN {
         WNOHANG avg class deparse dirname file_id getcwd matrix max vcmp
         maybeRef min mkdir_p mkref open_fds pasteLines path serdate spit
         spit_fh suck suckdir sum uniq setfl getfl nonblock flatten
-        safe_isa
+        safe_isa serialPath
         }
       );
   push(@EXPORT_OK, @Scalar::Util::EXPORT_OK);
@@ -136,6 +136,20 @@ sub mkdir_p($;$) {
   pop(@dir);
   mkdir_p(join("/",@dir),$mode);
   mkdir($dir,$mode); 
+};
+sub serialPath {
+  local(@_)=@_;
+  my $i;
+  for($i=0;$i<@_;$i++) {
+    if($_[$i] =~ m{^[1-9][0-9]*$}){
+      last;
+    };
+  };
+  die "no number found in serialPath(@_)" unless $i<@_;
+  while(-e join("",@_) ){
+    die "not found" unless $_[$i] < ++$_[$i];
+  };
+  return join("",@_);
 };
 sub getfds();
 BEGIN {

@@ -29,12 +29,16 @@ my ($base)="dat/dry-run/conv";
 $convf=path($convf);
 $conv=AI::Conv->new(path("$convf"));
 my $i;
-for($i=1000;$i<9999;++$i)
-{
-  next if -e "$base.$i.jwrap";
-  system("cp", "$base.jwrap", "$base.$i.jwrap");
-  last;
+my $next = serialPath($base,"1000",".jwrap");
+unless(defined($next)) {
+  die "failed to find next for ($base,\"1000\",.jwrap)";
 };
+#    for($i=1000;$i<9999;++$i)
+#    {
+#      next if -e "$base.$i.jwrap";
+#      system("cp", "$base.jwrap", "$base.$i.jwrap");
+#      last;
+#    };
 ddx($conv);
 
 my ($msg) = DryRun::next();

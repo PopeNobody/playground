@@ -24,11 +24,15 @@ our(@keys);
 sub format {
   local(@_)=@_;
   my $i=0;
+  $DB::single=$DB::single=1;
   while($i<@_){
-    next unless defined;
-    if(blessed($_[$i]) and $_[$i]->isa("Path::Tiny")){
-      splice(@_,$i,1,$_[$i]->slurp);
-    } elsif (ref($_[$i]) eq 'ARRAY' ) {
+    ddx( [ 0+@_, $i ] );
+    local($_)=$_[$i];
+    if(!defined) {
+      splice(@_,$i,1);
+    } elsif(blessed($_) and $_->isa("Path::Tiny")){
+      splice(@_,$i,1,$_->slurp);
+    } elsif (ref($_) eq 'ARRAY' ) {
       splice(@_,$i,1,@$_);
     } elsif (m{\n}) {
       splice(@_,$i,1,split(m{\n}));

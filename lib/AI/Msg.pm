@@ -54,8 +54,6 @@ sub new {
     say STDERR "data from \@_: (@_)";
     $self->{$_}=shift for @keys;
   };
-  @_=grep { !$deflen->($_) } @keys;
-  die "empty values for @_" if @_;
   for(qw(name role)){
     $self->{$_} =~ s{^\s+}{};
     $self->{$_} =~ s{\s+$}{};
