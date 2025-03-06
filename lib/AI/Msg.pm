@@ -2,11 +2,14 @@ package AI::Msg;
 
 use strict;
 use warnings;
-use lib 'lib';
+BEGIN {
+  use lib "$ENV{PWD}/lib";
+};
 use Nobody::Util;
 use Path::Tiny;
 use Data::Dumper;
 use Carp qw( confess carp croak cluck );
+use AI::TextProc;
 use common::sense;
 use Scalar::Util qw(blessed);
 use Text::Wrap qw(wrap $columns );
@@ -58,14 +61,7 @@ sub new {
     $self->{$_} =~ s{\s+$}{};
   };
   for($self->{text}){
-    @_=$_;
-    @_=map { flatten($_) } @_;
-    @_=map { mayslurp($_) } @_;
-    $_=join("\n",@_);
-    s{^\s+}{};
-    s{\s+$}{};
-    $_=wrap("","",$_);
-    ddx(\@_);
+    $_=AI::TextProc::format($_);
   };
   $self->check;
 }
