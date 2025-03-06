@@ -22,11 +22,10 @@ use Snatcher;
 our(@VERSION) = qw( 0 1 0 );
 use Getopt::WonderBra;
 use AI::Conv;
-use AI::Transact qw(transact);
 
 @ARGV = getopt("f:e",@ARGV);
-my $text = "Say goodnight, gracie!";
-my ($edit,$file) = ( 0, undef );
+my ($text);
+my ($edit,$file) = ( 1, "prompt.txt" );
 sub help {
   say "usage; $0 [ -f \$file ] [ -e ]";
   say "";
@@ -48,14 +47,18 @@ while(($_=shift)ne'--'){
 };
 if($edit) {
   $file//="prompt.txt";
-  system("vi prompt.txt");
+  system("exec >/dev/tty </dev/tty 2>&1; vi $file");
   die "edit session failed" if $?;
 }
+$file=path($file);
 if(defined($file)){
   $text=$file->slurp;
 };
 $file = path("test-gpt.jwrap");
 my $conv = AI::Conv->new($file);
-my $response = transact($conv,$text);
-ddx($response);
-
+my $res = $conv->transact($conv,$text);
+ddx($res);
+my @res = split(m{\n},$res);
+for(@res) {
+  print;
+};

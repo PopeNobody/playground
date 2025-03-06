@@ -21,7 +21,6 @@ use Nobody::Util;
 use Snatcher;
 our(@VERSION) = qw( 0 1 0 );
 use AI::Conv;
-use AI::Transact qw(transact);
 use DryRun;
 sub next;
 my ($conv,$convf);
