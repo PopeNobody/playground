@@ -69,7 +69,8 @@ sub new {
     
     # Verify required fields are defined
     foreach my $k (@required_keys) {
-      confess "Required field $k is undefined" unless defined $self->{$k};
+      confess "Required field $k is undefined in" , Dumper($self)
+      unless defined $self->{$k};
     }
   }
   
