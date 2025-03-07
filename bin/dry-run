@@ -40,9 +40,9 @@ unless(defined($next)) {
 #      last;
 #    };
 ddx($conv);
-
+$DB::single=$DB::signle=1;
 my ($msg) = DryRun::next();
-$msg=AI::Msg->new($msg);
+$msg=AI::Msg->new($msg->{role},$msg->{name},$msg->{text});
 $conv->add($msg);
 ddx($conv);
 
