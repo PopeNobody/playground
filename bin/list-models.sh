@@ -1,4 +1,4 @@
 #!/bin/bash
 
-ddx($_curl  \
-  -H "Authorization: Bearer GEMINI_API_KEY"
+curl  ${url}/models \
+  -H "Authorization: Bearer $API_KEY"
