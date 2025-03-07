@@ -12,24 +12,35 @@ use Carp qw(confess carp croak cluck);
 use AI::TextProc;
 use common::sense;
 use Scalar::Util qw(blessed);
-use Time::HiRes qw(time);
-
-our(@required_keys, @optional_keys);
+our(@keys);
 BEGIN {
-  @required_keys = qw(role name text);
-  @optional_keys = qw(type timestamp);
+  @keys=qw(role name text);
+};
+
+sub mayslurp {
+  local($_)=shift;
+  say STDERR "checking blessed";
+  return $_ unless blessed($_);
+  say STDERR "checking can slurp";
+  return $_ unless $_->can("slurp");
+  say STDERR "calling slurp";
+  return $_->slurp;
 };
 
 sub check {
   my $hash=shift;
-  for(@required_keys) {
+  for(@keys) {
     confess "$_ must not be null" unless defined $hash->{$_};
     confess "$_ must have length" unless length $hash->{$_};
   };
-  # Initialize optional fields with defaults if not set
-  $hash->{type} ||= 'text/plain';
-  $hash->{timestamp} ||= time();
   $hash;
+};
+
+my $deflen=sub {
+  local($_)=shift;
+  return 0 unless defined;
+  return 0 unless length;
+  1;
 };
 
 sub new {
@@ -38,37 +49,28 @@ sub new {
   die "class must be defined" unless defined $class;
   my $self = bless({},$class);
   
+  # Keep debugging output
+  ddx({map { $_, eval $_ } 'ref($_[0])'});
+  
   # Extract values based on param type
-  if(ref($_[0]) eq 'HASH'){
+  if (ref($_[0]) eq 'HASH') {
     say STDERR "data from HASH: ", pp($_[0]);
-    # Required keys
-    foreach my $k (@required_keys) {
+    foreach my $k (@keys) {
       $self->{$k} = $_[0]->{$k};
       confess "Required field $k missing in hash" unless defined $self->{$k};
-    }
-    # Optional keys
-    foreach my $k (@optional_keys) {
-      $self->{$k} = $_[0]->{$k} if defined $_[0]->{$k};
     }
   } else {
     say STDERR "data from \@_: (@_)";
     
-    # We expect exactly three required positional parameters, plus optional ones
-    confess "Expected at least 3 parameters (role, name, text)" 
-      unless @_ >= 3;
+    # We expect exactly three positional parameters: role, name, text
+    confess "Expected exactly 3 parameters (role, name, text), got " . scalar(@_) 
+      unless @_ == 3;
     
-    # Assign the three required positional parameters
-    @{$self}{@required_keys} = splice(@_, 0, 3);
+    # Assign the three positional parameters
+    @{$self}{@keys} = @_;
     
-    # Handle optional params as key/value pairs if present
-    while (@_ >= 2) {
-      my $key = shift;
-      my $val = shift;
-      $self->{$key} = $val if grep { $_ eq $key } @optional_keys;
-    }
-    
-    # Verify required fields are defined
-    foreach my $k (@required_keys) {
+    # Verify all are defined
+    foreach my $k (@keys) {
       confess "Required field $k is undefined" unless defined $self->{$k};
     }
   }
@@ -84,17 +86,6 @@ sub new {
     $DB::single=$DB::single=1;
     $_=AI::TextProc::format($_);
   };
-  
-  # Set timestamp if not already set
-  $self->{timestamp} ||= time();
-  
-  # Set default type if not set
-  $self->{type} ||= 'text/plain';
-  
-  # Auto-detect scripts
-  if ($self->{type} eq 'text/plain' && $self->{text} =~ /^#!/m) {
-    $self->{type} = 'application/x-executable';
-  }
   
   return $self->check;
 }
@@ -112,18 +103,12 @@ sub from_jwrap {
 
 sub as_jwrap {
   my ($self) = @_;
-  
-  my $result = {
+#      
+  return {
     role => $self->{role},
     name => $self->{name},
     text => [ split(m{\n}, $self->{text}) ],
   };
-  
-  # Add optional fields if present
-  $result->{type} = $self->{type} if defined $self->{type};
-  $result->{timestamp} = $self->{timestamp} if defined $self->{timestamp};
-  
-  return $result;
 }
 
 1;

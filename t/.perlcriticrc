@@ -1,0 +1,41 @@
+# t/.perlcriticrc - Perl::Critic configuration for AI::Comm
+
+# Severity level: 1 is most severe, 5 least
+severity = 4
+
+# Exclude policies that don't apply well to this codebase
+[-Subroutines::ProhibitExplicitReturnUndef]
+[-ValuesAndExpressions::ProhibitMagicNumbers]
+[-Variables::ProhibitPunctuationVars]
+[-RegularExpressions::RequireExtendedFormatting]
+[-ControlStructures::ProhibitPostfixControls]
+[-ControlStructures::ProhibitUnlessBlocks]
+[-CodeLayout::RequireTidyCode]
+[-InputOutput::ProhibitInteractiveTest]
+[-Subroutines::ProhibitSubroutinePrototypes]
+[-RegularExpressions::RequireDotMatchAnything]
+[-RegularExpressions::RequireLineBoundaryMatching]
+[-Documentation::RequirePodSections]
+[-Documentation::RequirePodAtEnd]
+[-Documentation::PodSpelling]
+[-Moose::RequireCleanNamespace]
+[-NamingConventions::Capitalization]
+
+# Particularly relevant policies
+[Subroutines::RequireArgUnpacking]
+severity = 3
+
+[TestingAndDebugging::RequireUseStrict]
+severity = 5
+
+[TestingAndDebugging::RequireUseWarnings]
+severity = 4
+
+[Variables::ProhibitUnusedVariables]
+severity = 3
+
+[InputOutput::RequireCheckedSyscalls]
+functions = open close
+
+[ErrorHandling::RequireCheckingReturnValueOfEval]
+severity = 3
