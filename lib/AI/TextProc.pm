@@ -3,13 +3,7 @@ use FindBin;
 our($prefix);
 use Path::Tiny;
 BEGIN {
-  ($prefix)=path($FindBin::Bin);
-  if($prefix->basename =~ m{s?bin} ){
-    $prefix=$prefix->parent;
-  };
-};
-BEGIN {
-  use lib "$prefix/lib";
+  use lib "$ENV{PWD}";
 };
 use common::sense;
 use Nobody::Util;

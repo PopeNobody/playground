@@ -1,8 +1,12 @@
+package IO::File;
+sub dbg {
+};
 package AI::Conv;
+*dbg=*IO::File::dbg;
 
 use strict;
 use warnings;
-use lib 'lib';
+use lib "$ENV{PWD}";
 use AI::Msg;
 use Storable qw(nstore retrieve);
 use Nobody::Util;
@@ -13,24 +17,11 @@ use Data::Dumper;
 use Carp qw(confess croak carp cluck);
 use common::sense;
 use LWP::UserAgent;
-use AI::Config qw(get_api_info get_api_key);
+use AI::Config qw(get_api_info get_api_key get_api_ua);
 # Add overloading for stringification to JSON
-use overload '""' => \&as_json;
+use overload '""' => sub { die "don't stringify me bro!"; };
 
 # Persistent user agent and API info
-our $UA;
-our $API_URL;
-our $MODEL;
-BEGIN {
-  my $api_info = eval { get_api_info() };
-  my $api_key = eval { get_api_key() };
-  die "missing api key" unless defined $api_key;   
-  $UA = LWP::UserAgent->new;
-  $UA->default_header('Authorization' => "Bearer $api_key");
-  $API_URL = $api_info->{url}->{api};
-  $MODEL = $api_info->{model};
-}
-
 sub file {
   my ($self) = shift;
   $self->{file};
@@ -54,7 +45,9 @@ sub check {
 sub new {
   my ($class, $file) = ( shift, shift);
   ($class) = ( ref($class) || $class );
-  die "file is required" unless ref($file) and $file->isa('Path::Tiny');
+  die "file is required" unless defined($file);
+  die "file should be Path::Tiny"  unless blessed($file)
+    and $file->isa('Path::Tiny');
   $file=$file->absolute;
   my $self={
     file => $file,
@@ -67,13 +60,13 @@ sub new {
   } else {
     say STDERR "File $file does not exist, creating new conversation.";
     my $path=path("etc/system-message.md");
-    ddx( { path=>$path } );
+    dbg( { path=>$path } );
     my $msg = AI::Msg->new({
       role => "system",
       name => "system",
       text => $path
     });
-    ddx( { "ref(\$msg)"=>ref($msg) } );
+    dbg( { "ref(\$msg)"=>ref($msg) } );
     $self->add($msg);
   }
 
@@ -81,12 +74,10 @@ sub new {
 }
 
 sub save_jwrap {
-  my ($self) = @_;
-  my $file = $self->{file};
+  my ($self,$file) = @_;
+  $file //= $self->{file};
   $file->parent->mkpath;
   my $jwrap=$self->as_jwrap;
-  say STDERR "[", join(", ",map { ref } @$jwrap), "]";
-
   $file->spew(encode_json($jwrap));
   return $self;
 }
@@ -98,7 +89,7 @@ sub load_jwrap {
   my ($file) = $self->{file};
   die "file must be defined" unless defined $file;
   die "file must be ref" unless ref($file);
-  die "file must slurp" unless $file->can("slurp");
+  die "file must slurp" unless blessed($file) and $file->can("slurp");
   
   my $json;
   eval {
@@ -115,7 +106,7 @@ sub load_jwrap {
   if ($@) {
     die "Failed to parse JSON from $file: $@ ($json)";
   }
-  
+
   # Handle special case for a single message
   if (!ref($data) eq 'ARRAY') {
     $data = [$data];
@@ -170,19 +161,20 @@ sub as_json {
 
   return encode_json({
     messages => \@standard_msgs,
-    model => $MODEL,
+    model => get_api_mod(),
   });
 }
 
 # Initialize globals at module load time
 
 sub transact {
-  say STDERR "transact(@_)";
+  dbg STDERR "transact(@_)";
   my ($self, $message) = @_;
   
   croak "conv object required" unless blessed($self) && $self->isa('AI::Conv');
-  croak "API not initialized - missing API key?" unless $UA;
+  croak "API not initialized" unless get_ua();
 
+  say STDERR "=========\n$message\n========\n";
   # Append user message to conv unless empty
   croak "Message is required" unless defined $message;
   if (length $message) {
@@ -194,12 +186,12 @@ sub transact {
   }
 
   # Prepare HTTP request
-  my $req = HTTP::Request->new(POST => "$API_URL/chat/completions");
+  my $req = HTTP::Request->new(POST => get_api_url()."/chat/completions");
   $req->header('Content-Type' => 'application/json');
 
   # Prepare payload with OpenAI format
   my $payload = {
-    model => $MODEL,
+    model => get_api_mod(),
     messages => [],
     temperature => 0.7,
     max_tokens => 4096
@@ -221,7 +213,7 @@ sub transact {
   path("req.log")->spew($redacted_req->as_string);
 
   # Send request
-  my $res = $UA->request($req);
+  my $res = get_api_ua()->request($req);
 
   # Store response for debugging
   path("res.log")->spew($res->as_string);

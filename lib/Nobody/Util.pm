@@ -7,6 +7,7 @@ use vars qw(@carp @pp);
 use lib "/opt/lib/perl";
 use Carp;
 use Path::Tiny;
+use Fcntl qw(:seek :mode);
 BEGIN {
   @pp=qw( dd ddx ee eex pp ppx qquote quote );
   @carp=(sub{package Carp; return @EXPORT,@EXPORT_OK,@EXPORT_FAIL;})->();

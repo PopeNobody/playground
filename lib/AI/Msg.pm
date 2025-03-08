@@ -1,9 +1,14 @@
+package IO::File;
+sub dbg {};
+package main;
+*dbg=*IO::FILE::dbg;
 package AI::Msg;
+*dbg=*IO::FILE::dbg;
 
 use strict;
 use warnings;
 BEGIN {
-  use lib "$ENV{PWD}/lib";
+  use lib "$ENV{PWD}";
 };
 use Nobody::Util;
 use Path::Tiny;
@@ -14,6 +19,7 @@ use common::sense;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(time);
 use MIME::Types;
+
 
 our(@required_keys, @optional_keys);
 BEGIN {
@@ -101,7 +107,7 @@ sub new {
   
   # Extract values based on param type
   if(ref($_[0]) eq 'HASH'){
-    say STDERR "data from HASH: ", pp($_[0]);
+    dbg STDERR "data from HASH: ", pp($_[0]);
     # Required keys
     foreach my $k (@required_keys) {
       $self->{$k} = $_[0]->{$k};
@@ -112,7 +118,7 @@ sub new {
       $self->{$k} = $_[0]->{$k} if defined $_[0]->{$k};
     }
   } else {
-    say STDERR "data from \@_: (@_)";
+    dbg STDERR "data from \@_: (@_)";
     
     # We expect exactly three required positional parameters, plus optional ones
     confess "Expected at least 3 parameters (role, name, text)" 
