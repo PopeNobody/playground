@@ -8,7 +8,7 @@ use JSON::Pretty;
 use Path::Tiny;
 use LWP::UserAgent;
 
-our @EXPORT_OK = qw(get_api_info get_api_key get_api_ua);
+our @EXPORT_OK = qw(get_api_info get_api_key get_api_ua get_api_mod get_api_url);
 
 # Storage for model configuration
 our %config;
@@ -39,7 +39,6 @@ BEGIN {
   $config{dummy} =~ s{.}{.}g;
   die "missing api key" unless defined get_api_key();
   die "No api_mod" unless defined get_api_mod();
-  ddx({API_URL=>get_api_url, MODEL=>get_api_mod});
   $UA = LWP::UserAgent->new;
   $UA->default_header('Authorization' => "Bearer ".get_api_key() );
   

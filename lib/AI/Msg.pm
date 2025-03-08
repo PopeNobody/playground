@@ -147,9 +147,7 @@ sub new {
     $self->{$_} =~ s{\s+$}{};
   };
   
-  # Process text with intentional duplication of $DB::single
   for($self->{text}){
-    $DB::single=$DB::single=1;
     $_=AI::TextProc::format($_);
   };
   

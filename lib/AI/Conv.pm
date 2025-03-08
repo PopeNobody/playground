@@ -17,9 +17,9 @@ use Data::Dumper;
 use Carp qw(confess croak carp cluck);
 use common::sense;
 use LWP::UserAgent;
-use AI::Config qw(get_api_info get_api_key get_api_ua);
+use AI::Config qw( get_api_key get_api_ua get_api_mod get_api_url);
 # Add overloading for stringification to JSON
-use overload '""' => sub { die "don't stringify me bro!"; };
+use overload '""' => sub { confess "don't stringify me bro!"; };
 
 # Persistent user agent and API info
 sub file {
@@ -168,22 +168,28 @@ sub as_json {
 # Initialize globals at module load time
 
 sub transact {
-  dbg STDERR "transact(@_)";
-  my ($self, $message) = @_;
+  say STDERR "transact(",Dumper(\@_).")";
+  my ($self, $msg) = @_;
   
   croak "conv object required" unless blessed($self) && $self->isa('AI::Conv');
-  croak "API not initialized" unless get_ua();
+  croak "API not initialized" unless get_api_ua();
 
-  say STDERR "=========\n$message\n========\n";
   # Append user message to conv unless empty
-  croak "Message is required" unless defined $message;
-  if (length $message) {
-    $self->add(AI::Msg->new({
-      role => "user",
-      name => "user",
-      text => $message
-    }));
-  }
+  croak "Message is required" unless defined $msg;
+  if(ref($msg) ne 'AI::Msg'){
+    $msg = AI::Msg->new(
+      {
+        role => "user",
+        name => "user",
+        text => $msg
+      }
+    );
+  };
+  if(ref($msg) ne "AI::Msg"){
+    die "bad msg: ", pp($msg), "\n";
+  };
+  $self->add($msg);
+  say STDERR "=========\n",$self->as_json,"\n========\n";
 
   # Prepare HTTP request
   my $req = HTTP::Request->new(POST => get_api_url()."/chat/completions");
