@@ -13,40 +13,12 @@ use AI::TextProc;
 use common::sense;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(time);
-use MIME::Types;
 
 our(@required_keys, @optional_keys);
 BEGIN {
   @required_keys = qw(role name text);
   @optional_keys = qw(type timestamp);
 };
-
-# Create a single MIME::Types instance to be reused
-our $MIME_TYPES = MIME::Types->new();
-
-# Map interpreter commands to file extensions
-our %INTERPRETER_MAP = (
-    'perl'    => 'pl',
-    'python'  => 'py',
-    'python2' => 'py',
-    'python3' => 'py',
-    'bash'    => 'sh',
-    'sh'      => 'sh',
-    'zsh'     => 'sh',
-    'ksh'     => 'sh',
-    'dash'    => 'sh',
-    'ruby'    => 'rb',
-    'node'    => 'js',
-    'nodejs'  => 'js',
-    'php'     => 'php',
-    'Rscript' => 'r',
-    'lua'     => 'lua',
-    'awk'     => 'awk',
-    'sed'     => 'sed',
-    'tcl'     => 'tcl',
-    'tclsh'   => 'tcl',
-    'wish'    => 'tcl',
-);
 
 sub check {
   my $hash=shift;
@@ -59,39 +31,6 @@ sub check {
   $hash->{timestamp} ||= time();
   $hash;
 };
-
-# Helper function to detect script type from shebang line
-sub _detect_script_type {
-  my ($text) = @_;
-  
-  # Default to plain text if no shebang
-  return 'text/plain' unless $text =~ /^#!(.+)$/m;
-  
-  my $shebang = $1;
-  my $ext = 'x';  # default executable extension
-  
-  # Check for each known interpreter
-  foreach my $interp (keys %INTERPRETER_MAP) {
-    if ($shebang =~ /\b$interp\b/) {
-      $ext = $INTERPRETER_MAP{$interp};
-      last;
-    }
-  }
-  
-  # Look up MIME type for the extension
-  my $mime_obj = $MIME_TYPES->type(ext => $ext);
-  
-  # Return the MIME type if found, otherwise use a sensible default
-  if ($mime_obj) {
-    return $mime_obj->type;
-  } elsif ($ext eq 'x') {
-    return 'application/x-executable';
-  } else {
-    # If we identified an interpreter but MIME::Types doesn't have a mapping,
-    # use a well-formed MIME type based on the extension
-    return "application/x-$ext";
-  }
-}
 
 sub new {
   my ($class) = shift;
@@ -153,9 +92,9 @@ sub new {
   # Set default type if not set
   $self->{type} ||= 'text/plain';
   
-  # Auto-detect scripts and assign specific MIME types
+  # Auto-detect scripts
   if ($self->{type} eq 'text/plain' && $self->{text} =~ /^#!/m) {
-    $self->{type} = _detect_script_type($self->{text});
+    $self->{type} = 'application/x-executable';
   }
   
   return $self->check;
