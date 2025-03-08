@@ -24,15 +24,9 @@ BEGIN {
   };
 }
 INIT {
-  for($cfg{tmpdir}) {
-    for my $tmp ( qw( TMP TMPDIR TEMPDIR TEMPORARY_DIRECTORY ) ) {
-      $_=$ENV{$tmp};
-      last if defined;
-    };
-    s{/*$}{/} if defined;
-  };
+  $cfg{logfile}=path($ENV{CAPTURE_LOG_FILE} || "log/capture.$$.log");
+  $cfg{logfile}->parent->mkdir;;
 
-  $cfg{logfile}="$cfg{tmpdir}capture.$$.log";
   unless(grep { $_ eq '--' } @ARGV){
     print STDERR "warning: no --\n";
   };
@@ -50,28 +44,22 @@ INIT {
 }
 my (@argv);
 our(@str);
-sub handle_STDIN {
-}
-sub handle_STDOUT {
-}
-sub handle_STDERR {
-}
 BEGIN {
   sub buf() {
     my $buf="";
     return \$buf;
   };
   *main::str = [
-    [*STDIN,       new IO::Pipe, buf(),'I',\&hadnle_STDIN],
-    [new IO::Pipe,      *STDOUT, buf(),'O',\&hadnle_STDOUT],
-    [new IO::Pipe,      *STDERR, buf(),'E',\&handle_STDERR],
+    [*STDIN,       new IO::Pipe, buf(),'I'],
+    [new IO::Pipe,      *STDOUT, buf(),'O'],
+    [new IO::Pipe,      *STDERR, buf(),'E'],
   ];
 };
 
 my $old = umask 0077;
 open(my $log,">", $cfg{logfile});
 umask $old;
-$log->say("C: ", pp(\@ARGV));
+$log->say("C: ", grep { s{\s+}{ }g;1; } pp(\@ARGV));
 
 my $dead=0;
 my (%dat);
@@ -119,7 +107,7 @@ sub main() {
         my($c)=0;
         while((my $i=index($_,"\n"))>=0){
           my ($line)=substr($_,0,$i+1,"");
-          $log->print("$t: ".pp($line)."\n");
+          $log->print("$t: ".pp($line));
           $w->print("$line");
           ++$c;
         };
