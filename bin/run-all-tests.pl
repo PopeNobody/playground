@@ -26,6 +26,8 @@ for(sort map { path($_) } map { split } qx(find t -type f -name '*.t')){
   $save->say("$_ failed");
 } continue {
   open(STDIN,"</dev/null");
+  open(STDOUT,">&".fileno($save));
+  open(STDERR,">&".fileno($save));
 };
 exit(0) unless @failed;
 open(STDERR,">&".fileno($save));
