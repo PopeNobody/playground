@@ -74,6 +74,8 @@ if test -t 1; then
   warn "Please use: source activate"
   warn "Or:         . ./activate"
   exit 1
+elif (($#)); then
+  exec "$@"
 else
   # assume user is either evaling output, or saving it as a script.
   declare -p AI_PLAYGROUND_OLD_PATH AI_PLAYGROUND_OLD_PERL5LIB

@@ -17,6 +17,7 @@ BEGIN {
     say "Usage: $0 [ -f logfile ] [ process ]";
     say "";
     say "  -f [name] : use logfile name";
+    say "  -q        : suppress output to fds 0,1,2";
   }
   sub version {
     local($")=".";
@@ -24,17 +25,18 @@ BEGIN {
   };
 }
 INIT {
-  $cfg{logfile}=path($ENV{CAPTURE_LOG_FILE} || "log/capture.$$.log");
-  $cfg{logfile}->parent->mkdir;;
+  $cfg{logfile}="log/capture.$$.log");
+  $cfg{mode}=">";
 
   unless(grep { $_ eq '--' } @ARGV){
     print STDERR "warning: no --\n";
   };
-  @ARGV = getopt("pf:",@ARGV);
+  @ARGV = getopt("aqf:",@ARGV);
   while(($_=shift(@ARGV))ne'--'){
     if($_ eq '-f') {
       $cfg{logfile}=shift(@ARGV);
     } elsif ( $_ eq '-q' ) {
+      open(STDIN,"</dev/null");
       open(STDOUT,">/dev/null");
       open(STDERR,">/dev/null");
     } else {
@@ -57,7 +59,8 @@ BEGIN {
 };
 
 my $old = umask 0077;
-open(my $log,">", $cfg{logfile});
+$cfg{logfile}->parent->mkdir;;
+open(my $log,$cfg{mode}, $cfg{logfile});
 umask $old;
 $log->say("C: ", grep { s{\s+}{ }g;1; } pp(\@ARGV));
 

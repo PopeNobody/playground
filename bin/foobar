@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+# vim: ts=2 sw=2 ft=perl
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+  if 0;
+$|++;
+use common::sense;
+use autodie;
+use Nobody::Util;
+our(@VERSION) = qw( 0 1 0 );
+use AI::Conv;
+my $path1=path("data/input.jwrap");
+my $path2=path("data/output.jwrap");
+
+my $conv =AI::Conv->new( $path1 );
+$conv->save_jwrap($path2);
+system("cmp $path1 $path2");
+
