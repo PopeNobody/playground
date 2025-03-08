@@ -64,12 +64,8 @@ sub _load_model_config {
     
     # Try to find a specific model config file
     my @config_paths = (
-        "etc/$model.json",
-        "etc/models/$model.json"
+        "etc/$model.json"
     );
-    
-    # Look for model handle (short name) in config files
-    my @model_files = glob("etc/*.json");
     
     foreach my $file (@config_paths, @model_files) {
         my $path = path($file);
