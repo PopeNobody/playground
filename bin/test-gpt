@@ -5,6 +5,7 @@ eval 'exec perl -x -wS $0 ${1+"$@"}'
 $|++;
 use FindBin qw($Bin);
 use Path::Tiny;
+open(STDERR,"|cat >&2");
 open(STDOUT,">&STDERR");
 BEGIN {
   for(map { "$_" } $Bin) {
@@ -23,8 +24,8 @@ our(@VERSION) = qw( 0 1 0 );
 use Getopt::WonderBra;
 use AI::Conv;
 
-@ARGV = getopt("c:f:e",@ARGV);
-my ($text);
+@ARGV = getopt("dc:f:e",@ARGV);
+my ($delete,$text) = 0;
 my ($edit,$file,$conv) = ( 1, "prompt.txt", "test.jwrap" );
 sub help {
   say "usage; $0 [ -f \$file ] [ -e ]";
@@ -36,6 +37,8 @@ sub help {
   say "";
   say "   -e edit first.  filename is still used, if provided";
   say "      this is a toggle, and defaults to on";
+  say "";
+  say "   -d unlink exisnting converstation";
 };
 
 sub version {
@@ -47,6 +50,8 @@ while(($_=shift)ne'--'){
     $conv=path(shift);
   } elsif( $_ eq '-f') {
     $file=path(shift);
+  } elsif ( $_ eq '-d' ) {
+    $delete=1;
   } elsif ( $_ eq '-e' ) {
     $edit=1-$edit;
   } else {
@@ -63,8 +68,12 @@ if(defined($file)){
   $text=$file->slurp;
 };
 $file = path("test-gpt.jwrap");
+if($delete) {
+  $file->remove if $file->exists;
+};
 my $conv = AI::Conv->new($file);
-my $res = $conv->transact($conv,$text);
+eex( [ $conv, $text ] );
+my $res = $conv->transact($text);
 ddx($res);
 my @res = split(m{\n},$res);
 for(@res) {
