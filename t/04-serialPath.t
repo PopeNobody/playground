@@ -3,9 +3,16 @@
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
+{
+  package IO::File;
+  sub dbg{};
+};
 use common::sense;
 use autodie;
 our(@VERSION) = qw( 0 1 0 );
+use Nobody::Util;
+use Data::Dumper;
+use Fcntl;
 use Fcntl qw( :Fcompat );
 
 sub serial_maker($$) {
@@ -19,20 +26,19 @@ sub serial_maker($$) {
       return undef if($num>$max);
       $res{fn}=sprintf($fmt,$num++);
       no autodie 'sysopen';
-      return \%res if sysopen($res{fh},$res{fn},Fcntl::O_EXCL());
+      if(sysopen($res{fh},$res{fn},Fcntl::CREAT|Fcntl::O_EXCL())){
+        ddx(\%res);
+        return \%res 
+      };
     };
   };
 };
-ddx( { func=>serial_maker("file%04d.txt",10000)});
-use Nobody::Util;
-$DB::single=$DB::single=1;
 my $gen=serial_maker("file%-02.txt",10);
-use Data::Dumper;
 my ($res);
-while(defined($res=gen->())){
+while(defined($res=$gen->())){
   my $txt=Dumper($res);
-  $gen->{fh}->say($txt);
-  print STDERR $txt;
+  my $XXX=$gen->();
+  ddx($XXX);
 };
 
   

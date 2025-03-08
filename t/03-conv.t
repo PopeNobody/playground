@@ -32,11 +32,11 @@ is($conv->{msgs}[1]{text}, 'Test message', 'Message text correct');
 my $conv2 = AI::Conv->new($test_conv_file);
 is(scalar @{$conv2->{msgs}}, 2, 'Conversation loaded with correct message count');
 is($conv2->{msgs}[1]{text}, 'Test message', 'Message content loaded correctly');
-
+use Test::MockObject;
 # Test API interaction (only if we have an API key)
 SKIP: {
     skip "API tests require API_KEY environment variable", 2 
-        unless $ENV{OPENAI_API_KEY} || $ENV{API_KEY};
+      unless $ENV{OPENAI_API_KEY} || $ENV{API_KEY};
     
     # Mock a simple response if needed
     local $AI::Conv::UA = Test::MockObject->new;

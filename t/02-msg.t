@@ -35,10 +35,12 @@ like($msg3->{text}, qr/This is a sample system message/, 'Text loaded from file'
 
 # Test serialization
 my $jwrap = $msg1->as_jwrap();
+delete $jwrap->{timestamp};
 is_deeply($jwrap, {
     role => 'user',
     name => 'testuser',
-    text => ['Hello world']
+    text => ['Hello world'],
+    type => 'text/plain'
 }, 'as_jwrap() returns correct structure');
 
 # Test deserialization
@@ -56,7 +58,7 @@ is($msg5->{text}, "Line 1\nLine 2\nLine 3", 'Multi-line text handled correctly')
 
 # Test error conditions
 eval { AI::Msg->new("user", "testuser", undef) };
-like($@, qr/must not be null/, 'Error on undefined text');
+like($@, qr/is undefined/, 'Error on undefined text');
 
 eval { AI::Msg->new("user", "", "text") };
 like($@, qr/must have length/, 'Error on empty name');
