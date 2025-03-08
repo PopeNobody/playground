@@ -32,6 +32,7 @@ sub help {
   say "   -f \$file: prompt from file \$file";
   say "";
   say "   -e edit first.  filename is still used, if provided";
+  say "      this is a toggle, and defaults to on".
 };
 sub version {
   say "@VERSION";
@@ -40,7 +41,7 @@ while(($_=shift)ne'--'){
   if( $_ eq '-f') {
     $file=path(shift);
   } elsif ( $_ eq '-e' ) {
-    $edit=1;
+    $edit=1-$edit;
   } else {
     die "bad arg: $_";
   };
