@@ -6,13 +6,31 @@ $|++;
 use common::sense;
 use autodie;
 use Nobody::Util;
+use Path::Tiny;
 our(@VERSION) = qw( 0 1 0 );
 
-for(sort map { split } qx(find t -type f -name '*.t')){
+my ($logdir) = path("log")->absolute;
+my @failed;
+open(my $save, ">&STDERR");
+for(sort map { path($_) } map { split } qx(find t -type f -name '*.t')){
   say;
+  my ($base) = $_->basename("*.t");
+  my ($log) = $logdir->mkdir->child($base.".log");
+  open(STDOUT,">",$log);
+  open(STDERR,">&STDOUT");
   open(STDIN,"-|","perl",$_);
   chomp(@_=<STDIN>);
   no autodie 'close';
-  say STDERR "$_ failed" unless close(STDIN);
-  say for @_;
+  next if close(STDIN);
+  push(@failed,$log);
+  $save->say("$_ failed");
+} continue {
+  open(STDIN,"</dev/null");
+};
+exit(0) unless @failed;
+open(STDERR,">&".fileno($save));
+open(STDOUT,">&STDERR");
+for( @failed ) {
+  say "$_ failed";
+  say $_->slurp;
 };
