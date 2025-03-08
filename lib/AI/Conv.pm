@@ -14,16 +14,26 @@ use Carp qw(confess croak carp cluck);
 use common::sense;
 use LWP::UserAgent;
 use AI::Config qw(get_api_info get_api_key);
+# Add overloading for stringification to JSON
+use overload '""' => \&as_json;
 
 # Persistent user agent and API info
 our $UA;
 our $API_URL;
 our $MODEL;
+BEGIN {
+  my $api_info = eval { get_api_info() };
+  my $api_key = eval { get_api_key() };
+  die "missing api key" unless defined $api_key;   
+  $UA = LWP::UserAgent->new;
+  $UA->default_header('Authorization' => "Bearer $api_key");
+  $API_URL = $api_info->{url}->{api};
+  $MODEL = $api_info->{model};
+}
 
 sub file {
   my ($self) = shift;
-  my ($file) = $self->{file};
-  $file;
+  $self->{file};
 };
 
 sub check {
@@ -160,34 +170,16 @@ sub as_json {
 
   return encode_json({
     messages => \@standard_msgs,
-    model => $ENV{OPENAI_API_MOD} || $MODEL,
+    model => $MODEL,
   });
 }
 
 # Initialize globals at module load time
-BEGIN {
-  my $api_info = eval { get_api_info() };
-  my $api_key = eval { get_api_key() };
-  
-  if ($api_key) {
-    $UA = LWP::UserAgent->new;
-    $API_URL = $api_info->{url}->{api};
-    $MODEL = $api_info->{model};
-
-    # Add default header for authentication
-    $UA->default_header('Authorization' => "Bearer $api_key");
-  }
-}
 
 sub transact {
   say STDERR "transact(@_)";
   my ($self, $message) = @_;
   
-  # For compatibility with older code that passes conv object as first param
-  if (blessed($_[0]) && !blessed($_[1]) && defined($_[1])) {
-    ($self, $message) = @_;
-  }
-
   croak "conv object required" unless blessed($self) && $self->isa('AI::Conv');
   croak "API not initialized - missing API key?" unless $UA;
 

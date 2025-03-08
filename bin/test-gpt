@@ -23,22 +23,29 @@ our(@VERSION) = qw( 0 1 0 );
 use Getopt::WonderBra;
 use AI::Conv;
 
-@ARGV = getopt("f:e",@ARGV);
+@ARGV = getopt("c:f:e",@ARGV);
 my ($text);
-my ($edit,$file) = ( 1, "prompt.txt" );
+my ($edit,$file,$conv) = ( 1, "prompt.txt", "test.jwrap" );
 sub help {
   say "usage; $0 [ -f \$file ] [ -e ]";
+  say "";
+  say "   -c \$conv load/store conversation from this file";
+  say "       extension should be jwrap or wrapped json";
   say "";
   say "   -f \$file: prompt from file \$file";
   say "";
   say "   -e edit first.  filename is still used, if provided";
-  say "      this is a toggle, and defaults to on".
+  say "      this is a toggle, and defaults to on";
 };
+
 sub version {
   say "@VERSION";
 };
+
 while(($_=shift)ne'--'){
-  if( $_ eq '-f') {
+  if( $_ eq '-c') {
+    $conv=path(shift);
+  } elsif( $_ eq '-f') {
     $file=path(shift);
   } elsif ( $_ eq '-e' ) {
     $edit=1-$edit;

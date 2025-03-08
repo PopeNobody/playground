@@ -14,32 +14,18 @@ our %config;
 
 # Load model config at initialization
 BEGIN {
-  my $file = path("etc/model.json");
-  if ($file->exists) {
-    my $json = $file->slurp;
-    my $config = decode_json($json);
-    %config = %$config;
-  } else {
-    die "Cannot find model configuration file: etc/model.json";
-  }
-}
-
-# Get API info
-sub get_api_info {
-  return { %config };
+  *config = decode_json(path("etc/model.json")->slurp);
+  die "missing API_KEY" unless defined $ENV{API_KEY};
+  $config{dummy}=$config{api_key}=$ENV{API_KEY};
+  $config{dummy} =~ s{.}{.}g;
 }
 
 # Get API key
 sub get_api_key {
-  return $ENV{API_KEY};
-}
-my ($DUMMY);
-BEGIN {
-  $DUMMY="$ENV{API_KEY}";
-  $DUMMY =~ s{.}{*}g;
+  return $config{api_key};
 }
 sub redact {
-  return grep { s{$ENV{API_KEY}}{$DUMMY}g } @_;
+  return grep { s{$config{api_key}}{$config{dummy}}g } @_;
 };
 1;
 

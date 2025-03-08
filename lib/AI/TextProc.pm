@@ -26,8 +26,7 @@ sub format {
   my $i=0;
   $DB::single=$DB::single=1;
   while($i<@_){
-    ddx( [ 0+@_, $i ] );
-    local($_)=$_[$i];
+    local(*_)=\$_[$i];
     if(!defined) {
       splice(@_,$i,1);
     } elsif(blessed($_) and $_->isa("Path::Tiny")){
