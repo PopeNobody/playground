@@ -18,7 +18,6 @@ our(@keys);
 sub format {
   local(@_)=@_;
   my $i=0;
-  $DB::single=$DB::single=1;
   while($i<@_){
     local(*_)=\$_[$i];
     if(!defined) {
@@ -33,10 +32,12 @@ sub format {
       $i++;
     };
   };
+  local($_)=join("\n",@_);
+  $_=wrap("","",$_);
   if(wantarray){
-    @_;
+    return split(m{\n});
   } else {
-    return join("\n",@_);
+    return $_;
   };
 };
 

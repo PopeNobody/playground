@@ -237,18 +237,20 @@ sub transact {
   my $reply = $response_data->{choices}[0]{message}{content};
 
   # Handle missing content
-  unless (defined $reply) {
-    $reply = "No response content received from API. Full response: " . encode_json($response_data);
+  unless (defined $reply and length $reply) {
+    $reply = "No response content received from API. ".
+    "Full response: " . encode_json($response_data);
   }
-
+  $DB::single=1;
   # Append AI response to conv
-  $self->add(AI::Msg->new({
-    role => "assistant",
-    name => "ai",
-    text => $reply
-  }));
+  my $msg = AI::Msg->new({
+      role => "assistant",
+      name => "ai",
+      text => $reply
+    });
+  $self->add($msg);
 
-  return $reply;
+  return $msg;
 }
 
 1;

@@ -147,10 +147,6 @@ sub new {
     $self->{$_} =~ s{\s+$}{};
   };
   
-  for($self->{text}){
-    $_=AI::TextProc::format($_);
-  };
-  
   # Set timestamp if not already set
   $self->{timestamp} ||= time();
   
@@ -161,10 +157,22 @@ sub new {
   if ($self->{type} eq 'text/plain' && $self->{text} =~ /^#!/m) {
     $self->{type} = _detect_script_type($self->{text});
   }
+  # Don't reformat scripts.
+  if($self->{type} eq "text/plain") {
+    for($self->{text}){
+      $_=AI::TextProc::format($_);
+    };
+  };
+  
   
   return $self->check;
 }
-
+sub run {
+  my ($self)=shift;
+  if( $self->{type} eq "text/plain" ) {
+    die "one does not simply RUN plain text!";
+  };
+}
 sub from_jwrap {
   my ($class, $data) = @_;
   
