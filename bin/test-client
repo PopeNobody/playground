@@ -1,0 +1,37 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use FindBin qw($Bin);
+use lib "$Bin/../lib";
+use AI::Client qw(create_client);
+
+# Which model to test
+my $model = shift || $ENV{API_MODEL};
+
+print "Using model: $client->{model} (Provider: $client->{provider})\n";
+print "Connecting to server: " . ($ENV{$client->{provider} . "_SERVER_URL"} || "http://localhost:" . getpwnam($client->{provider}) . "/ai_api") . "\n";
+
+# Create client
+my $client = create_client({
+    model => $model,
+    debug => 1
+});
+
+# Send test message
+my $response = $client->send_message({
+    message => "Write a simple script to print hello world with the date",
+    temperature => 0.7
+});
+
+print "Response from AI:\n$response\n";
+
+# If execution results are available, show them
+if ($client->{last_execution_results}) {
+    print "\nScript Execution Results:\n";
+    foreach my $result (@{$client->{last_execution_results}}) {
+        print "Exit code: $result->{exit_code}\n";
+        print "Output: $result->{output}\n";
+    }
+}
+
+exit 0;

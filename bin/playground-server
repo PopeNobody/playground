@@ -13,7 +13,6 @@ use IO::Socket::UNIX;
 use JSON;
 use lib 'lib';
 use AI::Comm qw(start_comm_server send_message broadcast_message register_handler);
-use AI::Model::Config qw(get_api_info get_all_models);
 
 our(@VERSION) = qw( 0 1 0 );
 

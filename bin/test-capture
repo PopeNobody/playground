@@ -1,0 +1,39 @@
+#!/usr/bin/perl
+# vim: ts=2 sw=2 ft=perl
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+if 0;
+
+use strict;
+use warnings;
+use autodie;
+use Fcntl;
+use Data::Dump;
+use IO::Socket::UNIX;
+use Time::HiRes qw(sleep);
+use IO::Select;
+use IO::FDPass;
+sub ALRM;
+use vars qw( @tmpfile );
+our(%S);
+my ($sock);
+for(;;){
+  $sock = IO::Socket::UNIX->new(
+    Peer  => "socket"
+  );
+  die "socket:$!" unless defined $sock;
+  last;
+};
+while(<DATA>){
+  if(s{^#!}{}){
+    $sock->print($_);
+  };
+};
+close($sock);
+exit(0);
+__DATA__
+#!/usr/bin/perl
+
+system("ls -l /proc/$$/* /proc/$$/fd/*");
+for(glob("*")){
+  say STDERR;
+};

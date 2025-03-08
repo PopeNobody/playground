@@ -8,6 +8,7 @@ use Nobody::Util;
 use IO::File;
 use IO::Pipe;
 use IO::Select;
+use IO::Socket::UNIX;
 use Path::Tiny;
 use Time::HiRes qw( sleep alarm );
 use Getopt::WonderBra;
@@ -33,9 +34,6 @@ INIT {
   };
 
   $cfg{logfile}="$cfg{tmpdir}capture.$$.log";
-  unless(grep { $_ eq '--' } @ARGV){
-    print STDERR "warning: no --\n";
-  };
   @ARGV = getopt("pf:",@ARGV);
   while(($_=shift(@ARGV))ne'--'){
     if($_ eq '-f') {
@@ -95,8 +93,24 @@ sub start_child() {
 my $ip;
 sub main() {
   local($DB::inhibit_exit)=0;
-  $SIG{CHLD}=sub { $dead=1; $log->say("S:",@_); };
+  my $path = "$ENV{PWD}/socket";
+  $!=0;
+  my $sock = IO::Socket::UNIX->new ( $path );
+  $!=0;
+  exit(0) if defined $sock;
+  unlink($path);
+  $sock = IO::Socket::UNIX->new (
+    Listen=>2,
+    Local=>$path
+  );
+  die "failed to create  listen socket: $!" unless defined $sock;
+  $sock=$sock->accept;
+  die "no cmd" unless (@ARGV = map { split } scalar(<$sock>));
+  @ARGV = map { split } scalar(<$sock>);
+  close($sock);
+  $sock=undef;
   start_child;
+  $SIG{CHLD}=sub { $dead=1; $log->say("S:",@_); };
   my $sel=IO::Select->new;
   for(@str) {
     local(*str)=$_;
@@ -126,7 +140,7 @@ sub main() {
         };
       } else {
         if(defined($n)){
-#              warn "eof on ",fileno($r),"\n";
+          #              warn "eof on ",fileno($r),"\n";
         } else {
           warn "error on fd: ",fileno($r),": $!\n";
         };
