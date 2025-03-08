@@ -48,7 +48,7 @@ SKIP: {
     
     my $response = $conv->transact("Simple test question");
     is(scalar @{$conv->{msgs}}, 4, 'Conversation updated with request and response');
-    is($response, 'Test response', 'Got correct API response');
+    is($response->as_json(), 'Test response', 'Got correct API response');
 }
 
 # Test serialization to JSON

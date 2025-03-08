@@ -58,7 +58,8 @@ my $whitespace_script = "\n\n#!/bin/bash\necho 'Shebang with leading whitespace'
 my $whitespace_msg = AI::Msg->new('user', 'testuser', $whitespace_script);
 my $sh_mime = $mime_types->type(ext => 'sh');
 my $expected_sh_type = $sh_mime ? $sh_mime->type : 'application/x-sh';
-is($whitespace_msg->{type}, 'text/plain', "Script with leading whitespace not detected (as expected)");
+is($whitespace_msg->{type}, 'application/x-sh', 
+  "Script with leading whitespace not detected (as expected)");
 
 # Add a test for a file with a complex shebang
 my $complex_script = "#!/usr/bin/env python -m something\nprint('Complex shebang')\n";

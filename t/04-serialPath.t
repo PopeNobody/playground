@@ -14,6 +14,7 @@ use Nobody::Util;
 use Data::Dumper;
 use Fcntl;
 use Fcntl qw( :Fcompat );
+use Carp qw(confess);
 
 sub serial_maker($$) {
   my ($fmt)=shift;
@@ -24,16 +25,20 @@ sub serial_maker($$) {
     my (%res)=( fh=>undef, fn=>undef );
     for(;;){
       return undef if($num>$max);
-      $res{fn}=sprintf($fmt,$num++);
+      ($res{fn}=path(sprintf($fmt,$num)))->parent->mkdir;
       no autodie 'sysopen';
-      if(sysopen($res{fh},$res{fn},Fcntl::CREAT|Fcntl::O_EXCL())){
-        ddx(\%res);
+      if(sysopen($res{fh},$res{fn},Fcntl::O_CREAT|Fcntl::O_EXCL())){
+        eex(\%res);
         return \%res 
+      } elsif ( $!{EEXIST} ) {
+        ++$num;
+      } else {
+        confess "sysopen:$res{fh}:$!";
       };
     };
   };
 };
-my $gen=serial_maker("file%-02.txt",10);
+my $gen=serial_maker("t/tmp/file%08s.txt",10);
 my ($res);
 while(defined($res=$gen->())){
   my $txt=Dumper($res);

@@ -14,12 +14,14 @@ use Nobody::Util;
 use Path::Tiny;
 use Data::Dumper;
 use Carp qw(confess carp croak cluck);
+use Nobody::JSON;
 use AI::TextProc;
 use common::sense;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(time);
 use MIME::Types;
 
+use overload '""' => sub { confess "don't stringify me bro!"; };
 
 our(@required_keys, @optional_keys);
 BEGIN {
@@ -182,6 +184,15 @@ sub from_jwrap {
   }
   
   return $class->new($data);
+}
+
+sub as_json {
+  my ($self) = @_;
+
+  return encode_json({
+      role => $self->{role},
+      content => $self->{text}
+    });
 }
 
 sub as_jwrap {

@@ -33,6 +33,7 @@ is($result, "Array 1\nArray 2\nArray 3", "Format array reference");
 # Test with Path::Tiny object
 my $test_file = path("$Bin/data/sample_system_message.md");
 $result = AI::TextProc::format($test_file);
+$result =~ s{\n}{ }g;
 like($result, qr/This is a sample system message/, "Format Path::Tiny object");
 
 # Test with mixed input

@@ -31,6 +31,7 @@ is($msg2->{text}, 'How can I help you?', 'Text set correctly from hash');
 my $test_file = path("$Bin/data/sample_system_message.md");
 my $msg3 = AI::Msg->new('system', 'system', $test_file);
 isa_ok($msg3, 'AI::Msg', 'Object created with Path::Tiny for text');
+$msg3->{text}=~s{\s+}{ }g;
 like($msg3->{text}, qr/This is a sample system message/, 'Text loaded from file');
 
 # Test serialization

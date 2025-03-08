@@ -153,10 +153,7 @@ sub as_json {
   my @standard_msgs;
 
   foreach my $msg (@{$self->{msgs}}) {
-    push @standard_msgs, {
-      role => $msg->{role},
-      content => $msg->{text}
-    };
+    push @standard_msgs, $msg->as_json;
   }
 
   return encode_json({
