@@ -34,3 +34,4 @@ for( @failed ) {
   say "$_ failed";
   say $_->slurp;
 };
+exit(1);
