@@ -103,25 +103,25 @@ EOT
 # Test with bash script
 my $bash_msg = AI::Msg->new('user', 'testuser', $bash_script);
 ok($bash_msg, "Created AI::Msg with bash script");
-is($bash_msg->{type}, 'application/x-executable', 
+is($bash_msg->{type}, 'application/x-sh', 
   "Type correctly set to executable for bash script");
 
 # Test with python script
 my $python_msg = AI::Msg->new('user', 'testuser', $python_script);
 ok($python_msg, "Created AI::Msg with python script");
-is($python_msg->{type}, 'application/x-executable', 
+is($python_msg->{type}, 'application/x-py', 
   "Type correctly set to executable for python script");
 
 # Test with perl script
 my $perl_msg = AI::Msg->new('user', 'testuser', $perl_script);
 ok($perl_msg, "Created AI::Msg with perl script");
-is($perl_msg->{type}, 'application/x-executable', 
+is($perl_msg->{type}, 'application/x-pl', 
   "Type correctly set to executable for perl script");
 
 # Test round-trip preservation of type
 my $jwrap_bash = $bash_msg->as_jwrap();
 my $restored_bash_msg = AI::Msg->from_jwrap($jwrap_bash);
-is($restored_bash_msg->{type}, 'application/x-executable', 
+is($restored_bash_msg->{type}, 'application/x-sh', 
   "Type preserved in jwrap round-trip");
 
 # Clean up test files
