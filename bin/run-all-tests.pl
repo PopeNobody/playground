@@ -18,7 +18,7 @@ for(sort map { path($_) } map { split } qx(find t -type f -name '*.t')){
   my ($log) = $logdir->mkdir->child($base.".log");
   open(STDOUT,">",$log);
   open(STDERR,">&STDOUT");
-  open(STDIN,"-|","perl",$_);
+  open(STDIN,"-|","vi-perl",$_);
   chomp(@_=<STDIN>);
   no autodie 'close';
   next if close(STDIN);

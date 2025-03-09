@@ -31,7 +31,7 @@ die "$@" if $@;
 foreach my $test (@test_scripts) {
     print "\nTesting: $test->{name}\n";
     my $msg = AI::Msg->new('user', 'testuser', $test->{script});
-    ok($msg, "Created message with $test->{name}");
+    ok(defined $msg, "Created message with $test->{name}");
     
     my $expected_type;
     if ($test->{extension} eq '') {

@@ -22,7 +22,7 @@ my $msg1 = AI::Msg->new({
     text => "This is a test message.\nWith multiple lines.\nTo test serialization."
 });
 
-ok($msg1, "Created AI::Msg object");
+ok($msg1->as_json, "Created AI::Msg object");
 is($msg1->{role}, 'user', "Role is set correctly");
 is($msg1->{name}, 'testuser', "Name is set correctly");
 like($msg1->{text}, qr/multiple lines/, "Text contains expected content");
@@ -44,7 +44,7 @@ print "\nTest 2: Deserialize from jwrap\n";
 my $json_data = decode_json($jwrap_file->slurp);
 my $msg2 = AI::Msg->from_jwrap($json_data);
 
-ok($msg2, "Created AI::Msg from jwrap");
+ok(defined $msg2, "Created AI::Msg from jwrap");
 is($msg2->{role}, $msg1->{role}, "Role matches original");
 is($msg2->{name}, $msg1->{name}, "Name matches original");
 is($msg2->{text}, $msg1->{text}, "Text matches original");
@@ -57,7 +57,7 @@ is_deeply($jwrap2, $jwrap, "Round-trip conversion preserves data");
 # Test 4: Create message directly with multi-line string and positional params
 print "\nTest 4: Create with positional params\n";
 my $msg3 = AI::Msg->new('assistant', 'ai', "Response line 1\nResponse line 2");
-ok($msg3, "Created AI::Msg with positional parameters");
+ok(defined $msg3, "Created AI::Msg with positional parameters");
 is($msg3->{role}, 'assistant', "Role is set correctly");
 is($msg3->{name}, 'ai', "Name is set correctly");
 is($msg3->{text}, "Response line 1\nResponse line 2", "Text is set correctly");
@@ -68,7 +68,7 @@ my $text_file = $test_dir->child("test_text.txt");
 $text_file->spew("Line 1 from file\nLine 2 from file\nLine 3 from file");
 
 my $msg4 = AI::Msg->new('system', 'system', $text_file);
-ok($msg4, "Created AI::Msg with Path::Tiny for text");
+ok(defined $msg4, "Created AI::Msg with Path::Tiny for text");
 is($msg4->{role}, 'system', "Role is set correctly");
 is($msg4->{name}, 'system', "Name is set correctly");
 like($msg4->{text}, qr/Line 1 from file/, "Text contains expected content");
@@ -102,19 +102,19 @@ EOT
 
 # Test with bash script
 my $bash_msg = AI::Msg->new('user', 'testuser', $bash_script);
-ok($bash_msg, "Created AI::Msg with bash script");
+ok(defined $bash_msg, "Created AI::Msg with bash script");
 is($bash_msg->{type}, 'application/x-sh', 
   "Type correctly set to executable for bash script");
 
 # Test with python script
 my $python_msg = AI::Msg->new('user', 'testuser', $python_script);
-ok($python_msg, "Created AI::Msg with python script");
+ok(defined $python_msg, "Created AI::Msg with python script");
 is($python_msg->{type}, 'application/x-py', 
   "Type correctly set to executable for python script");
 
 # Test with perl script
 my $perl_msg = AI::Msg->new('user', 'testuser', $perl_script);
-ok($perl_msg, "Created AI::Msg with perl script");
+ok(defined $perl_msg, "Created AI::Msg with perl script");
 is($perl_msg->{type}, 'application/x-pl', 
   "Type correctly set to executable for perl script");
 
