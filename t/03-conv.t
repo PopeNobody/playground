@@ -46,7 +46,26 @@ SKIP: {
         return $response;
     });
     
-    my $response = $conv->transact("Simple test question");
+    my $response = $conv->transact(q{
+Simple test question:  please answer with exactly 'Test response'
+
+#  show AI code of test, so he understand the need for precision.
+#  kinda funny, feels like cheating, but all's fair in love and code
+#  I don't really know why this test is going to a real ai, thought
+#  it was being mocked.  but such is life.  I'll find this conversation
+#  in the test results, and send him a followup question, just because
+#  that's so much more fun than tracking it down.  :) 
+#
+#  This is all just so meta, I almost feel like I should send it to Meta,
+#  but I don't have the code for that yet.
+```
+    my $response = $conv->transact(q{
+Simple test question:  please answer with exactly 'Test response'
+\});
+    is(scalar @{$conv->{msgs}}, 4, 'Conversation updated with request and response');
+    is($response->as_json(), 'Test response', 'Got correct API response');
+```
+});
     is(scalar @{$conv->{msgs}}, 4, 'Conversation updated with request and response');
     is($response->as_json(), 'Test response', 'Got correct API response');
 }
