@@ -8,7 +8,9 @@ use JSON::Pretty;
 use Path::Tiny;
 use LWP::UserAgent;
 
-our @EXPORT_OK = qw(get_api_info get_api_key get_api_ua get_api_mod get_api_url);
+our @EXPORT_OK = qw(
+  get_api_info get_api_key get_api_ua get_api_mod get_api_url
+);
 
 # Storage for model configuration
 our %config;
@@ -33,15 +35,20 @@ sub redact {
 };
 BEGIN {
   *config = decode_json(path("etc/model.json")->slurp);
-  die "missing API_KEY" unless defined $ENV{API_KEY};
-  $config{dummy}=$config{api_key}=$ENV{API_KEY};
-#      delete $ENV{API_KEY};
-  $config{dummy} =~ s{.}{.}g;
-  die "missing api key" unless defined get_api_key();
-  die "No api_mod" unless defined get_api_mod();
-  $UA = LWP::UserAgent->new;
-  $UA->default_header('Authorization' => "Bearer ".get_api_key() );
-  
+  if(defined($ENV{API_KEY}) and defined($ENV{API_MOD})) {
+    $config{dummy}=$config{api_key}=$ENV{API_KEY};
+    delete $ENV{API_KEY};
+    $config{dummy} =~ s{.}{.}g;
+    die "missing api key" unless defined get_api_key();
+    die "No api_mod" unless defined get_api_mod();
+    $UA = LWP::UserAgent->new;
+    $UA->default_header('Authorization' => "Bearer ".get_api_key() );
+  } else {
+    warn  (
+      "API_MOD and API_KEY are required for communication\n".
+      "entering debgaded mode\n"
+    );
+  };
 }
 1;
 
