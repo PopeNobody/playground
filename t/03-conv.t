@@ -59,7 +59,7 @@ Simple test question:  please answer with exactly 'Test response'
 #  This is all just so meta, I almost feel like I should send it to Meta,
 #  but I don't have the code for that yet.
 ```
-    my $response = $conv->transact(q{
+    my $response = $conv->transact(q\{
 Simple test question:  please answer with exactly 'Test response'
 \});
     is(scalar @{$conv->{msgs}}, 4, 'Conversation updated with request and response');
