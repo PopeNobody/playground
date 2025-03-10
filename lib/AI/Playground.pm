@@ -1,61 +1,3 @@
-sub _handle_comm_request {
-    my ($self, $req) = @_;
-    
-    # Require POST method
-    unless ($req->method eq 'POST') {
-        $req->respond({ code => 405, content => ['application/json', '{"error":"Method not allowed"}'] });
-        return;
-    }
-    
-    # Parse the JSON request
-    my $json;
-    eval {
-        $json = decode_json($req->content);
-    };
-    
-    if ($@) {
-        $req->respond({ code => 400, content => ['application/json', '{"error":"Invalid JSON"}'] });
-        return;
-    }
-    
-    # Handle different communication actions
-    my $action = $json->{action};
-    my $result;
-    
-    if ($action eq 'send') {
-        # Send a message to a specific instance
-        my $target = $json->{target};
-        my $message = $json->{message};
-        
-        unless ($target && $message && $message->{type}) {
-            $req->respond({ code => 400, content => ['application/json', '{"error":"Missing target or message"}'] });
-            return;
-        }
-        
-        my $success = send_message($target, $message);
-        $result = { success => $success ? JSON::true : JSON::false };
-    }
-    elsif ($action eq 'broadcast') {
-        # Broadcast a message to all instances
-        my $message = $json->{message};
-        
-        unless ($message && $message->{type}) {
-            $req->respond({ code => 400, content => ['application/json', '{"error":"Missing or invalid message"}'] });
-            return;
-        }
-        
-        my $results = broadcast_message($message);
-        $result = { results => $results };
-    }
-    else {
-        $req->respond({ code => 400, content => ['application/json', '{"error":"Invalid action"}'] });
-        return;
-    }
-    
-    $req->respond({ content => ['application/json', encode_json($result)] });
-}
-
-1;
 package AI::Playground;
 
 use strict;
@@ -955,3 +897,61 @@ sub _handle_ai_api_request {
     
     $req->respond({ content => ['application/json', $json_response] });
 }
+sub _handle_comm_request {
+    my ($self, $req) = @_;
+    
+    # Require POST method
+    unless ($req->method eq 'POST') {
+        $req->respond({ code => 405, content => ['application/json', '{"error":"Method not allowed"}'] });
+        return;
+    }
+    
+    # Parse the JSON request
+    my $json;
+    eval {
+        $json = decode_json($req->content);
+    };
+    
+    if ($@) {
+        $req->respond({ code => 400, content => ['application/json', '{"error":"Invalid JSON"}'] });
+        return;
+    }
+    
+    # Handle different communication actions
+    my $action = $json->{action};
+    my $result;
+    
+    if ($action eq 'send') {
+        # Send a message to a specific instance
+        my $target = $json->{target};
+        my $message = $json->{message};
+        
+        unless ($target && $message && $message->{type}) {
+            $req->respond({ code => 400, content => ['application/json', '{"error":"Missing target or message"}'] });
+            return;
+        }
+        
+        my $success = send_message($target, $message);
+        $result = { success => $success ? JSON::true : JSON::false };
+    }
+    elsif ($action eq 'broadcast') {
+        # Broadcast a message to all instances
+        my $message = $json->{message};
+        
+        unless ($message && $message->{type}) {
+            $req->respond({ code => 400, content => ['application/json', '{"error":"Missing or invalid message"}'] });
+            return;
+        }
+        
+        my $results = broadcast_message($message);
+        $result = { results => $results };
+    }
+    else {
+        $req->respond({ code => 400, content => ['application/json', '{"error":"Invalid action"}'] });
+        return;
+    }
+    
+    $req->respond({ content => ['application/json', encode_json($result)] });
+}
+
+1;
