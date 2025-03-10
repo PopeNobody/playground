@@ -1,0 +1,124 @@
+#!/usr/bin/perl
+
+use strict;
+use feature qw(say);
+use warnings;
+use autodie qw(fork);
+use File::stat;
+use Time::HiRes qw( sleep );
+use FindBin qw($Bin $Script); 
+use lib "$Bin/../lib/perl5";
+use Nobody::Util;
+
+$|++;
+
+my $i;
+sub main();
+push(@ARGV,"sudo:/opt/bin/path2tree") unless @ARGV;
+die "usage: $0 [args and script and args ...] ...\n..." unless(@ARGV);
+main();
+
+use IO::Pipe;
+sub run_perl();
+sub run_filt($);
+sub cmd();
+my ($pipe);
+sub sel_item($$;$){
+  my ($buf)="";
+  return [ shift, \$buf, shift, @_?shift:() ];
+};
+my ($sudo)=0;
+my (@popts, $script, @sopts);
+sub main()
+{
+  my ($fscript);
+  local(*_)=cmd();
+  unless(defined($script)){
+    die ("unable to identify script in @ARGV");
+  };
+  $_=0 for my ( $perl_pid, $perl_res, $perl_sig );
+  $pipe = new IO::Pipe;
+  $fscript=($sudo?"sudo:$script":"$script");
+  if(!($perl_pid=open(STDIN,"-|"))){
+    open(STDERR,">&".fileno($pipe->writer));
+    close($pipe);
+    exec(@_);
+    die "NONE SHALL PASS!";
+  };
+  $pipe->reader();
+  my $sel;
+  use IO::Select;
+  $sel = new IO::Select;
+  $sel->add( sel_item(*STDIN, 0 ) );
+  $sel->add( sel_item($pipe,  1 ) );
+  my $last=0;
+  while($sel->handles){
+    my @can=$sel->can_read;
+    for(@can)
+    {
+      my ($pipe,$ref,$err);
+      ( $pipe, $ref, $err) = @$_;
+      local (*_)=$ref;
+      my $res=sysread($pipe,$_,1,length);
+      if(!defined($res)) {
+        die "sysread:$!";
+      } elsif ( !$res ) {
+        $sel->remove($pipe);
+        open($pipe,"</dev/null");
+        $last=1 if length($$ref);
+      };
+      my $nl=chomp($_)?"\n":"";
+      next unless ($last || length($nl));
+      if(!$err) {
+        print STDOUT "$_$nl";
+      } elsif(s{ at (\S+) line (\d+)\.}{}) {
+        my ($file,$line) = ($1,$2);
+        $file=$fscript if $file eq $script;
+        s{^\t(.*)called\s*$}{called from $1};
+        print STDERR "$file:$line: $_$nl";
+      } elsif(s{ at (\S+) line (\d+)\.*}{}) {
+        my ($file,$line) = ($1,$2);
+        $file=$fscript if $file eq $script;
+        s{^\t(.*)called\s*$}{called from $1};
+        $file=$fscript if $file eq $script;
+        print STDERR "$file:$line: $_$nl";
+      } else {
+        print STDERR "$_$nl";
+      };
+      $_="";
+    };
+  };
+  while((my $pid=wait())!=-1){
+    $perl_sig=$?%256;
+    $perl_res=int($?/256);
+    use POSIX;
+    if($perl_sig|$perl_res){
+      exit($perl_sig|$perl_res);
+    } else {
+      exit(0);
+    };
+  };
+};
+sub cmd() {
+  local(@_)=splice(@ARGV);
+  while(@_){
+    $_=shift;
+    if(s{^-e}{}){
+      $_=shift unless length;
+      die "-e with no arg" unless defined;
+      $script="-e";
+      @sopts=($_,splice(@_));
+    } elsif (m{^-}) {
+      push(@popts,$_);
+    } elsif (s{^sudo:}{}) {
+      $sudo=1;
+      $script=$_;
+      @sopts=splice(@_);
+    } else {
+      $script=$_;
+      @sopts=splice(@_);
+    };
+  };
+  die "Script not found" unless length($script);
+  return [qw(perl), @popts, $script, @sopts];
+};
