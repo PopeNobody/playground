@@ -182,38 +182,48 @@ print "Exported $cfg{commit_count} git commits to $cfg{output}\n";
 # Add an entry in the git config to use this script
 if (!$ENV{NO_GIT_CONFIG}) {
   my $script_path = path($0)->absolute;
-  my $hook_cmd = "cd $cfg{repo_path} && git config --local alias.changelog '!$script_path'";
-  system($hook_cmd);
-  print "Added git alias: You can now use 'git changelog' to update your Changes file\n";
   
-  # Offer to set up a post-commit hook
-  print "Would you like to set up a post-commit hook to automatically update the Changes file? [y/N] ";
-  my $response = <STDIN>;
-  chomp $response;
-  if (lc($response) eq 'y') {
-    my $hooks_dir = "$cfg{repo_path}/.git/hooks";
-    my $post_commit_file = "$hooks_dir/post-commit";
-    
-    # Create hooks directory if it doesn't exist
-    mkdir $hooks_dir unless -d $hooks_dir;
-    
-    # Create or append to post-commit hook
-    my $hook_content = "#!/bin/sh\n$script_path --replace-x 'Changes made' || true\n";
-    
-    if (-e $post_commit_file) {
-      # Check if our hook already exists
-      my $existing_hook = path($post_commit_file)->slurp;
-      if ($existing_hook !~ /\Q$script_path\E/) {
+  # Check if the git alias already exists
+  my $existing_alias = qx(cd $cfg{repo_path} && git config --local --get alias.changelog);
+  chomp $existing_alias;
+  
+  if (!$existing_alias) {
+    my $hook_cmd = "cd $cfg{repo_path} && git config --local alias.changelog '!$script_path'";
+    system($hook_cmd);
+    print "Added git alias: You can now use 'git changelog' to update your Changes file\n";
+  }
+  
+  # Check if post-commit hook exists and contains our script
+  my $hooks_dir = "$cfg{repo_path}/.git/hooks";
+  my $post_commit_file = "$hooks_dir/post-commit";
+  my $hook_exists = 0;
+  
+  if (-e $post_commit_file) {
+    my $existing_hook = path($post_commit_file)->slurp;
+    $hook_exists = 1 if $existing_hook =~ /\Q$script_path\E/;
+  }
+  
+  # Only offer to set up post-commit hook if it doesn't exist
+  if (!$hook_exists) {
+    print "Would you like to set up a post-commit hook to automatically update the Changes file? [y/N] ";
+    my $response = <STDIN>;
+    chomp $response;
+    if (lc($response) eq 'y') {
+      # Create hooks directory if it doesn't exist
+      mkdir $hooks_dir unless -d $hooks_dir;
+      
+      # Create or append to post-commit hook
+      my $hook_content = "#!/bin/sh\n$script_path --replace-x 'Changes made' || true\n";
+      
+      if (-e $post_commit_file) {
         path($post_commit_file)->append($hook_content);
       } else {
-        print "Hook already exists in $post_commit_file\n";
+        path($post_commit_file)->spew($hook_content);
+        chmod 0755, $post_commit_file;
       }
-    } else {
-      path($post_commit_file)->spew($hook_content);
-      chmod 0755, $post_commit_file;
+      
+      print "Post-commit hook installed to automatically update Changes file\n";
     }
-    
-    print "Post-commit hook installed to automatically update Changes file\n";
   }
 }
 

@@ -1,3 +1,893 @@
+Version 2.24 (2025-03-10 12:18:00) [2e97c3f]
+
+2025-03-10 12:11:58 [2e97c3f] nobody: updated git-to-changes to break lines
+
+2025-03-10 11:59:41 [4dbf441] nobody: updated bin/git-to-changes.pl to break
+    lines.
+
+2025-03-10 11:54:34 [cc0121c] nobody: Added changelog.
+
+Added git-to-changes.pl to update changelog
+
+Made git-to-changes.pl run on git hook.
+
+I am not sure how to add git hooks git git.
+
+2025-03-10 11:53:31 [c096890] nobody: added vi-perl to format perl error
+    messages for use with git -q
+
+2025-03-10 11:52:36 [d3ca0e9] nobody: added hook to auto-update Changes
+
+2025-03-10 11:51:22 [0687af0] nobody: x
+
+2025-03-10 11:40:24 [1897db3] nobody: Merge branch 'main' of
+    github.com:PopeNobody/playground
+
+2025-03-10 11:38:33 [f244f90] nobody: removed symlink lib/DryRun.pm to
+    ../etc/DryRun.pm
+
+2025-03-10 11:38:08 [b8386c1] nobody: Added AI::Playground, the future main
+    module.
+
+2025-03-10 11:37:19 [140b6a0] nobody: Added req2jwrap, to reformat requests
+    into jwrap
+
+2025-03-10 11:36:34 [b2e29a6] nobody: Escaped { in string for vim indenting.
+
+2025-03-10 11:35:21 [27c97e3] nobody: added AI::Playground module
+
+2025-03-08 19:04:33 [9f5b5a9] nobody: changes detailed below.
+
+diff --git a/bin/run-all-tests.pl b/bin/run-all-tests.pl
+
+Run tests with vi-perl rather than perl, so that the logfiles
+
+can be fed to the quickfix system using vi -q log/99-whatever.log
+
+Not to self:  add vi-perl to distribution at least for the time
+
+being, until it gets into CPAN.
+
++  open(STDIN,"-|","vi-perl",$_);
+
+diff --git a/t/05-mimetypes.t b/t/05-mimetypes.t
+
+diff --git a/t/06-msg-serialization.t b/t/06-msg-serialization.t
+
+change test from ok($msg to ok(defined $msg to avoid stringifying
+
+the message.  Because being stringified makes them VERY ANGRY.
+
++    ok(defined $msg, "Created message with $test->{name}");
+
+index 033d91d..1a61ab6 100755
+
+2025-03-08 19:00:01 [ea58264] nobody: Simple test question:  please answer
+    with exactly 'Test response'
+
+Software testing doesn't have to be boring, you just have to do it
+
+whimsically.  Test is going to ai for some reason when it should be
+
+mocked, so I'm going to capture the conversation, and send him a
+
+followup question to see if he can tell me why the code is mocking
+
+me by not mocking the object.
+
+committing this for posterity, 'cause I think it's hilarious.
+
++#  show AI code of test, so he understand the need for precision.
+
++#  kinda funny, feels like cheating, but all's fair in love and code
+
++#  I don't really know why this test is going to a real ai, thought
+
++#  it was being mocked.  but such is life.  I'll find this conversation
+
++#  in the test results, and send him a followup question, just because
+
++#  that's so much more fun than tracking it down.  :)
+
++#
+
++#  This is all just so meta, I almost feel like I should send it to Meta,
+
++#  but I don't have the code for that yet.
+
+```
+
+    my $response = $conv->transact(q{
+
+Simple test question:  please answer with exactly 'Test response'
+
+\});
+
+    is(scalar @{$conv->{msgs}}, 4, 'Conversation updated with request and
+    response');
+
+    is($response->as_json(), 'Test response', 'Got correct API response');
+
+```
+
+});
+
+2025-03-08 18:26:41 [fe71e4b] nobody: tests improved and passing
+
+On branch main
+
+Your branch is ahead of 'origin/main' by 4 commits.
+
+  (use "git push" to publish your local commits)
+
+Changes to be committed:
+
+      modified:   lib/AI/Conv.pm
+
+      modified:   lib/AI/Msg.pm
+
+      modified:   t/00-load.t
+
+      modified:   t/01-textproc.t
+
+      modified:   t/02-msg.t
+
+      modified:   t/03-conv.t
+
+      modified:   t/04-serialPath.t
+
+      modified:   t/05-mimetypes.t
+
+diff --git a/lib/AI/Conv.pm b/lib/AI/Conv.pm
+
+use AI::Msg::as_json to format msgs.
+
+  * let messages format themselves
+
+  * overload stringify operator to throw exception
+
+    for debugging.
+
+diff --git a/t/00-load.t b/t/00-load.t
+
+  * test load MIME::Types
+
+diff --git a/t/01-textproc.t b/t/01-textproc.t
+
+diff --git a/t/02-msg.t b/t/02-msg.t
+
+  * replace newlines with spaces in results of some
+
+    messages, to prevent even wrapping with short lines
+
+    breaking tests.
+
+diff --git a/t/03-conv.t b/t/03-conv.t
+
+  * Don't stringify Msg, it happens accidentally too frequently
+
+    so it may be modified to throw exception during development
+
+diff --git a/t/04-serialPath.t b/t/04-serialPath.t
+
+  * Make proper names, without spaces
+
+  * if file creation fails with !$!{EEXIST}, throw the error
+
+  * only increment iterator if ${EEXIST}.  let the next call
+
+    iterate once, to avoid losing "address space" in the event
+
+    of other errors
+
+  * report errors with confess
+
+  * create files in testing tempdir ( t/tmp )
+
+diff --git a/t/05-mimetypes.t b/t/05-mimetypes.t
+
+  * do not expect shebang after leading whitespace to fail.
+
+    leading whitespace is eaten by transact code.
+
+2025-03-08 18:26:24 [8a3f215] nobody: reopen STDOUT and STDERR between tests
+
+2025-03-08 18:25:26 [0442149] nobody: t/.gitignore: exclude test tmp dir
+
+2025-03-08 17:37:06 [277ad99] nobody: limit output for visibility, batch
+    return code
+
+2025-03-08 17:36:53 [91fba38] nobody: limit output for visibility, batch
+    return code
+
+2025-03-08 11:05:39 [8e47ab1] nobody: started on script running
+
+2025-03-08 09:47:18 [ce43087] nobody: Successfull text.  Need to format
+    response
+
+2025-03-08 09:47:06 [07a4f66] nobody: Successfull text.  Need to format
+    response
+
+2025-03-08 09:46:50 [4e66c96] nobody: Successfull text.  Need to format
+    response
+
+2025-03-08 08:03:44 [aacf2bc] nobody: x
+
+2025-03-08 08:03:29 [9b5499c] nobody: x
+
+2025-03-08 08:03:15 [b47d495] nobody: x
+
+2025-03-08 08:03:07 [8b0563b] nobody: x
+
+2025-03-08 08:02:49 [5b36ddc] nobody: x
+
+2025-03-07 23:55:43 [ce1abda] nobody: test goot for t/05-mimetypes.t
+    t/06-msg-serialization.t
+
+2025-03-07 23:54:52 [03fb2f1] nobody: x
+
+2025-03-07 23:51:59 [c0e93c9] nobody: x
+
+2025-03-07 23:27:24 [bd72451] nobody: x
+
+2025-03-07 21:56:19 [b3cf1c9] nobody: x
+
+2025-03-07 21:56:06 [37c9d4b] nobody: x
+
+2025-03-07 21:09:22 [1c3c4c4] nobody: x
+
+2025-03-07 03:52:11 [7b185f9] nobody: x
+
+2025-03-07 03:37:28 [d0329d4] nobody: x
+
+2025-03-07 03:37:18 [a07f8ca] nobody: x
+
+2025-03-07 03:37:08 [980b6e5] nobody: x
+
+2025-03-06 19:11:58 [7d905e2] nobody: x
+
+2025-03-06 16:15:34 [0be7b61] nobody: x
+
+2025-03-06 16:15:08 [93665ee] nobody: added basic test structure
+
+2025-03-06 14:20:37 [4166eae] nobody: x
+
+2025-03-06 02:45:40 [712c0cd] nobody: x
+
+2025-03-06 02:45:15 [52a59ab] nobody: x
+
+2025-03-05 14:06:43 [2f405bc] nobody: x
+
+2025-03-05 13:58:25 [442e9ee] nobody: x
+
+2025-03-05 13:53:49 [74911e2] nobody: x
+
+2025-03-05 13:52:52 [eee131a] nobody: x
+
+2025-03-05 13:52:17 [3220503] nobody: x
+
+2025-03-04 06:50:29 [c792d3f] nobody: x
+
+2025-03-04 06:47:57 [d50d334] nobody: x
+
+2025-03-04 10:58:02 [3b67c1b] nobody: cleaner dry-run-text.pl
+
+2025-03-04 10:56:09 [1d890ec] nobody: Merge branch 'main' of
+    hub:PopeNobody/playground
+
+2025-03-04 10:56:04 [869d0ed] nobody: x
+
+2025-03-04 05:55:46 [7162acb] nobody: x
+
+2025-03-04 05:55:36 [da6bf03] nobody: x
+
+2025-03-04 10:28:45 [ad073d4] nobody: Merge branch 'main' of
+    hub:PopeNobody/playground
+
+2025-03-04 10:28:39 [1188184] nobody: x
+
+2025-03-04 05:17:28 [248c5d9] nobody: x# On branch main
+
+2025-03-04 05:16:25 [b8d4485] nobody: x
+
+2025-03-04 03:04:55 [af052bb] nobody: x
+
+2025-03-04 03:00:11 [62e4414] nobody: removed 'ole'
+
+2025-03-04 07:58:00 [62a4d02] nobody: x
+
+2025-03-04 02:38:49 [c154858] nobody: x
+
+2025-03-04 02:29:10 [4e38daa] nobody: x
+
+2025-03-04 02:24:49 [20c51af] nobody: Calling wrap with only one arg is a bad
+    paln.
+
+Fixed.
+
+2025-03-04 07:19:47 [da2627f] nobody: x
+
+2025-03-04 07:08:25 [a8c9f1d] nobody: x
+
+2025-03-04 07:04:20 [cc1473f] nobody: x
+
+2025-03-04 02:02:47 [df0c2f7] nobody: x
+
+2025-03-04 02:02:17 [b5f60b6] nobody: x
+
+2025-03-03 23:51:16 [70d1d19] nobody: x
+
+2025-03-03 23:47:55 [85422bd] nobody: x
+
+2025-03-03 11:23:32 [b39d83c] nobody: Merge branch 'main' of
+    github.com:PopeNobody/playground
+
+2025-03-03 11:23:25 [ad33f35] nobody: disabled ci/dl for now
+
+2025-03-03 11:19:04 [39c7380] Nobody: Update makefile.yml
+
+2025-03-03 10:39:57 [294f903] nobody: added symlink for model
+
+2025-03-03 10:37:03 [b4998d5] nobody: added LWP
+
+2025-03-03 10:34:26 [e07ebfc] nobody: replaced builtin
+
+2025-03-03 10:34:20 [5f17581] nobody: replaced builtin
+
+2025-03-03 14:55:46 [2804d2b] nobody: x
+
+2025-03-03 14:52:50 [ef1b32b] nobody: x
+
+2025-03-03 14:48:31 [13a11ad] nobody: added ability to edit
+
+2025-03-03 14:47:34 [fce1438] nobody: Let's see if PERL5LIB works better than
+    PERL4LIB
+
+2025-03-03 14:46:00 [8eca9b0] nobody: x
+
+2025-03-03 11:07:15 [60038bf] nobody: added Getopt::WonderBra to deps
+
+2025-03-03 11:06:44 [ffc22c1] nobody: x
+
+2025-03-03 11:04:18 [8b36879] nobody: changed test dir to $PWD/test
+
+2025-03-03 05:59:17 [1499f33] nobody: Merge branch 'main' of
+    github.com:PopeNobody/playground
+
+2025-03-03 05:57:00 [4591744] nobody: added fdpass and fdrecv to .gitignore
+
+2025-03-03 05:56:03 [38f8a94] nobody: allow empty message to send conv as is
+
+2025-03-03 05:55:07 [454209c] nobody: added perl5db
+
+2025-03-03 05:54:42 [e73cf49] nobody: renamed files
+
+2025-03-03 05:54:21 [f1a0b1d] nobody: added makefile
+
+2025-03-03 05:52:38 [244d9ee] nobody: wrap text on create
+
+2025-03-03 05:51:59 [4dcbe85] nobody: reindent, remove debug trace
+
+2025-03-03 05:50:47 [9aaf9fa] nobody: new will now load OR create
+
+2025-03-03 05:49:30 [17393dd] nobody: fixed model id
+
+2025-03-03 05:49:12 [b191cb5] nobody: added *.log and test-gpt.jwrap to
+    .gitignore
+
+2025-03-03 10:46:42 [5563122] nobody: x
+
+2025-03-03 03:00:19 [3eb8329] nobody: x
+
+2025-03-03 01:56:08 [dc5443b] nobody: Removed makefile usage, just run perl. 
+    Added Path::Tiny
+
+2025-03-03 01:50:26 [324190b] nobody: Merge branch 'main' of
+    github.com:PopeNobody/playground
+
+2025-03-03 01:50:20 [f22a640] nobody: changed vi-perl to perl for github
+    tests
+
+2025-03-03 01:42:58 [3b3a4d8] Nobody: Added API_KEY to test.
+
+2025-03-03 06:28:17 [ddb0767] nobody: updated AI::Config and AI::Transact to
+    single-model paradigm
+
+2025-03-03 01:27:43 [0039766] nobody: added simple test ... incomplete
+
+2025-03-03 01:26:56 [fb964b0] nobody: updated makefile targets to check and
+    distcheck, to match github
+
+2025-03-03 06:24:57 [3120539] nobody: Merge branch 'main' of
+    github.com:PopeNobody/playground
+
+2025-03-03 01:19:12 [5faea71] Nobody: Create makefile.yml
+
+2025-03-03 06:04:57 [51905c4] nobody: added copy of JSON::Pretty dependency
+
+2025-03-03 06:04:21 [bb3044c] nobody: moved claude to one-ai-per-file
+    approach
+
+2025-03-03 05:22:53 [0d55ec3] nobody: Simplified and moved Config module
+
+2025-03-02 22:49:45 [ab7fb32] nobody: made e2e-test.sh executable
+
+2025-03-02 22:48:42 [b296145] nobody: x
+
+2025-03-02 18:17:53 [c82ffb8] nobody: x
+
+2025-03-02 18:07:08 [24991e8] nobody: take 2
+
+2025-03-02 18:05:10 [8268954] nobody: removed cleanup of tmpdir and moved it
+    to here
+
+2025-03-02 17:56:18 [df902c4] nobody: integraded what claude claims is
+
+the compolete playground script.
+
+2025-03-02 17:52:27 [8dca7f4] nobody: modified to allow eval "$(activate)"
+
+2025-03-02 16:12:17 [6fdd32e] nobody: x
+
+2025-03-02 16:07:37 [4d14d67] nobody: added AI::Connect::Claude and
+    AI::Model::Config
+
+2025-03-02 16:06:33 [e893961] nobody: added bin/ai-cli, bin/cpature.  updated
+    bin/playground-server
+
+2025-03-01 23:14:58 [5d759da] nobody: added Term::ReadLine::Remote and
+    PtyDonor to the mix
+
+2025-03-01 23:14:18 [7d94e93] nobody: x
+
+2025-03-01 21:55:07 [1a180ec] nobody: asdf
+
+
+Version 2.24 (2025-03-10 12:12:11) [2e97c3f]
+
+2025-03-10 12:11:58 [2e97c3f] nobody: updated git-to-changes to break lines
+
+2025-03-10 11:59:41 [4dbf441] nobody: updated bin/git-to-changes.pl to break
+    lines.
+
+2025-03-10 11:54:34 [cc0121c] nobody: Added changelog.
+
+Added git-to-changes.pl to update changelog
+
+Made git-to-changes.pl run on git hook.
+
+I am not sure how to add git hooks git git.
+
+2025-03-10 11:53:31 [c096890] nobody: added vi-perl to format perl error
+    messages for use with git -q
+
+2025-03-10 11:52:36 [d3ca0e9] nobody: added hook to auto-update Changes
+
+2025-03-10 11:51:22 [0687af0] nobody: x
+
+2025-03-10 11:40:24 [1897db3] nobody: Merge branch 'main' of
+    github.com:PopeNobody/playground
+
+2025-03-10 11:38:33 [f244f90] nobody: removed symlink lib/DryRun.pm to
+    ../etc/DryRun.pm
+
+2025-03-10 11:38:08 [b8386c1] nobody: Added AI::Playground, the future main
+    module.
+
+2025-03-10 11:37:19 [140b6a0] nobody: Added req2jwrap, to reformat requests
+    into jwrap
+
+2025-03-10 11:36:34 [b2e29a6] nobody: Escaped { in string for vim indenting.
+
+2025-03-10 11:35:21 [27c97e3] nobody: added AI::Playground module
+
+2025-03-08 19:04:33 [9f5b5a9] nobody: changes detailed below.
+
+diff --git a/bin/run-all-tests.pl b/bin/run-all-tests.pl
+
+Run tests with vi-perl rather than perl, so that the logfiles
+
+can be fed to the quickfix system using vi -q log/99-whatever.log
+
+Not to self:  add vi-perl to distribution at least for the time
+
+being, until it gets into CPAN.
+
++  open(STDIN,"-|","vi-perl",$_);
+
+diff --git a/t/05-mimetypes.t b/t/05-mimetypes.t
+
+diff --git a/t/06-msg-serialization.t b/t/06-msg-serialization.t
+
+change test from ok($msg to ok(defined $msg to avoid stringifying
+
+the message.  Because being stringified makes them VERY ANGRY.
+
++    ok(defined $msg, "Created message with $test->{name}");
+
+index 033d91d..1a61ab6 100755
+
+2025-03-08 19:00:01 [ea58264] nobody: Simple test question:  please answer
+    with exactly 'Test response'
+
+Software testing doesn't have to be boring, you just have to do it
+
+whimsically.  Test is going to ai for some reason when it should be
+
+mocked, so I'm going to capture the conversation, and send him a
+
+followup question to see if he can tell me why the code is mocking
+
+me by not mocking the object.
+
+committing this for posterity, 'cause I think it's hilarious.
+
++#  show AI code of test, so he understand the need for precision.
+
++#  kinda funny, feels like cheating, but all's fair in love and code
+
++#  I don't really know why this test is going to a real ai, thought
+
++#  it was being mocked.  but such is life.  I'll find this conversation
+
++#  in the test results, and send him a followup question, just because
+
++#  that's so much more fun than tracking it down.  :)
+
++#
+
++#  This is all just so meta, I almost feel like I should send it to Meta,
+
++#  but I don't have the code for that yet.
+
+```
+
+    my $response = $conv->transact(q{
+
+Simple test question:  please answer with exactly 'Test response'
+
+\});
+
+    is(scalar @{$conv->{msgs}}, 4, 'Conversation updated with request and
+    response');
+
+    is($response->as_json(), 'Test response', 'Got correct API response');
+
+```
+
+});
+
+2025-03-08 18:26:41 [fe71e4b] nobody: tests improved and passing
+
+On branch main
+
+Your branch is ahead of 'origin/main' by 4 commits.
+
+  (use "git push" to publish your local commits)
+
+Changes to be committed:
+
+      modified:   lib/AI/Conv.pm
+
+      modified:   lib/AI/Msg.pm
+
+      modified:   t/00-load.t
+
+      modified:   t/01-textproc.t
+
+      modified:   t/02-msg.t
+
+      modified:   t/03-conv.t
+
+      modified:   t/04-serialPath.t
+
+      modified:   t/05-mimetypes.t
+
+diff --git a/lib/AI/Conv.pm b/lib/AI/Conv.pm
+
+use AI::Msg::as_json to format msgs.
+
+  * let messages format themselves
+
+  * overload stringify operator to throw exception
+
+    for debugging.
+
+diff --git a/t/00-load.t b/t/00-load.t
+
+  * test load MIME::Types
+
+diff --git a/t/01-textproc.t b/t/01-textproc.t
+
+diff --git a/t/02-msg.t b/t/02-msg.t
+
+  * replace newlines with spaces in results of some
+
+    messages, to prevent even wrapping with short lines
+
+    breaking tests.
+
+diff --git a/t/03-conv.t b/t/03-conv.t
+
+  * Don't stringify Msg, it happens accidentally too frequently
+
+    so it may be modified to throw exception during development
+
+diff --git a/t/04-serialPath.t b/t/04-serialPath.t
+
+  * Make proper names, without spaces
+
+  * if file creation fails with !$!{EEXIST}, throw the error
+
+  * only increment iterator if ${EEXIST}.  let the next call
+
+    iterate once, to avoid losing "address space" in the event
+
+    of other errors
+
+  * report errors with confess
+
+  * create files in testing tempdir ( t/tmp )
+
+diff --git a/t/05-mimetypes.t b/t/05-mimetypes.t
+
+  * do not expect shebang after leading whitespace to fail.
+
+    leading whitespace is eaten by transact code.
+
+2025-03-08 18:26:24 [8a3f215] nobody: reopen STDOUT and STDERR between tests
+
+2025-03-08 18:25:26 [0442149] nobody: t/.gitignore: exclude test tmp dir
+
+2025-03-08 17:37:06 [277ad99] nobody: limit output for visibility, batch
+    return code
+
+2025-03-08 17:36:53 [91fba38] nobody: limit output for visibility, batch
+    return code
+
+2025-03-08 11:05:39 [8e47ab1] nobody: started on script running
+
+2025-03-08 09:47:18 [ce43087] nobody: Successfull text.  Need to format
+    response
+
+2025-03-08 09:47:06 [07a4f66] nobody: Successfull text.  Need to format
+    response
+
+2025-03-08 09:46:50 [4e66c96] nobody: Successfull text.  Need to format
+    response
+
+2025-03-08 08:03:44 [aacf2bc] nobody: x
+
+2025-03-08 08:03:29 [9b5499c] nobody: x
+
+2025-03-08 08:03:15 [b47d495] nobody: x
+
+2025-03-08 08:03:07 [8b0563b] nobody: x
+
+2025-03-08 08:02:49 [5b36ddc] nobody: x
+
+2025-03-07 23:55:43 [ce1abda] nobody: test goot for t/05-mimetypes.t
+    t/06-msg-serialization.t
+
+2025-03-07 23:54:52 [03fb2f1] nobody: x
+
+2025-03-07 23:51:59 [c0e93c9] nobody: x
+
+2025-03-07 23:27:24 [bd72451] nobody: x
+
+2025-03-07 21:56:19 [b3cf1c9] nobody: x
+
+2025-03-07 21:56:06 [37c9d4b] nobody: x
+
+2025-03-07 21:09:22 [1c3c4c4] nobody: x
+
+2025-03-07 03:52:11 [7b185f9] nobody: x
+
+2025-03-07 03:37:28 [d0329d4] nobody: x
+
+2025-03-07 03:37:18 [a07f8ca] nobody: x
+
+2025-03-07 03:37:08 [980b6e5] nobody: x
+
+2025-03-06 19:11:58 [7d905e2] nobody: x
+
+2025-03-06 16:15:34 [0be7b61] nobody: x
+
+2025-03-06 16:15:08 [93665ee] nobody: added basic test structure
+
+2025-03-06 14:20:37 [4166eae] nobody: x
+
+2025-03-06 02:45:40 [712c0cd] nobody: x
+
+2025-03-06 02:45:15 [52a59ab] nobody: x
+
+2025-03-05 14:06:43 [2f405bc] nobody: x
+
+2025-03-05 13:58:25 [442e9ee] nobody: x
+
+2025-03-05 13:53:49 [74911e2] nobody: x
+
+2025-03-05 13:52:52 [eee131a] nobody: x
+
+2025-03-05 13:52:17 [3220503] nobody: x
+
+2025-03-04 06:50:29 [c792d3f] nobody: x
+
+2025-03-04 06:47:57 [d50d334] nobody: x
+
+2025-03-04 10:58:02 [3b67c1b] nobody: cleaner dry-run-text.pl
+
+2025-03-04 10:56:09 [1d890ec] nobody: Merge branch 'main' of
+    hub:PopeNobody/playground
+
+2025-03-04 10:56:04 [869d0ed] nobody: x
+
+2025-03-04 05:55:46 [7162acb] nobody: x
+
+2025-03-04 05:55:36 [da6bf03] nobody: x
+
+2025-03-04 10:28:45 [ad073d4] nobody: Merge branch 'main' of
+    hub:PopeNobody/playground
+
+2025-03-04 10:28:39 [1188184] nobody: x
+
+2025-03-04 05:17:28 [248c5d9] nobody: x# On branch main
+
+2025-03-04 05:16:25 [b8d4485] nobody: x
+
+2025-03-04 03:04:55 [af052bb] nobody: x
+
+2025-03-04 03:00:11 [62e4414] nobody: removed 'ole'
+
+2025-03-04 07:58:00 [62a4d02] nobody: x
+
+2025-03-04 02:38:49 [c154858] nobody: x
+
+2025-03-04 02:29:10 [4e38daa] nobody: x
+
+2025-03-04 02:24:49 [20c51af] nobody: Calling wrap with only one arg is a bad
+    paln.
+
+Fixed.
+
+2025-03-04 07:19:47 [da2627f] nobody: x
+
+2025-03-04 07:08:25 [a8c9f1d] nobody: x
+
+2025-03-04 07:04:20 [cc1473f] nobody: x
+
+2025-03-04 02:02:47 [df0c2f7] nobody: x
+
+2025-03-04 02:02:17 [b5f60b6] nobody: x
+
+2025-03-03 23:51:16 [70d1d19] nobody: x
+
+2025-03-03 23:47:55 [85422bd] nobody: x
+
+2025-03-03 11:23:32 [b39d83c] nobody: Merge branch 'main' of
+    github.com:PopeNobody/playground
+
+2025-03-03 11:23:25 [ad33f35] nobody: disabled ci/dl for now
+
+2025-03-03 11:19:04 [39c7380] Nobody: Update makefile.yml
+
+2025-03-03 10:39:57 [294f903] nobody: added symlink for model
+
+2025-03-03 10:37:03 [b4998d5] nobody: added LWP
+
+2025-03-03 10:34:26 [e07ebfc] nobody: replaced builtin
+
+2025-03-03 10:34:20 [5f17581] nobody: replaced builtin
+
+2025-03-03 14:55:46 [2804d2b] nobody: x
+
+2025-03-03 14:52:50 [ef1b32b] nobody: x
+
+2025-03-03 14:48:31 [13a11ad] nobody: added ability to edit
+
+2025-03-03 14:47:34 [fce1438] nobody: Let's see if PERL5LIB works better than
+    PERL4LIB
+
+2025-03-03 14:46:00 [8eca9b0] nobody: x
+
+2025-03-03 11:07:15 [60038bf] nobody: added Getopt::WonderBra to deps
+
+2025-03-03 11:06:44 [ffc22c1] nobody: x
+
+2025-03-03 11:04:18 [8b36879] nobody: changed test dir to $PWD/test
+
+2025-03-03 05:59:17 [1499f33] nobody: Merge branch 'main' of
+    github.com:PopeNobody/playground
+
+2025-03-03 05:57:00 [4591744] nobody: added fdpass and fdrecv to .gitignore
+
+2025-03-03 05:56:03 [38f8a94] nobody: allow empty message to send conv as is
+
+2025-03-03 05:55:07 [454209c] nobody: added perl5db
+
+2025-03-03 05:54:42 [e73cf49] nobody: renamed files
+
+2025-03-03 05:54:21 [f1a0b1d] nobody: added makefile
+
+2025-03-03 05:52:38 [244d9ee] nobody: wrap text on create
+
+2025-03-03 05:51:59 [4dcbe85] nobody: reindent, remove debug trace
+
+2025-03-03 05:50:47 [9aaf9fa] nobody: new will now load OR create
+
+2025-03-03 05:49:30 [17393dd] nobody: fixed model id
+
+2025-03-03 05:49:12 [b191cb5] nobody: added *.log and test-gpt.jwrap to
+    .gitignore
+
+2025-03-03 10:46:42 [5563122] nobody: x
+
+2025-03-03 03:00:19 [3eb8329] nobody: x
+
+2025-03-03 01:56:08 [dc5443b] nobody: Removed makefile usage, just run perl. 
+    Added Path::Tiny
+
+2025-03-03 01:50:26 [324190b] nobody: Merge branch 'main' of
+    github.com:PopeNobody/playground
+
+2025-03-03 01:50:20 [f22a640] nobody: changed vi-perl to perl for github
+    tests
+
+2025-03-03 01:42:58 [3b3a4d8] Nobody: Added API_KEY to test.
+
+2025-03-03 06:28:17 [ddb0767] nobody: updated AI::Config and AI::Transact to
+    single-model paradigm
+
+2025-03-03 01:27:43 [0039766] nobody: added simple test ... incomplete
+
+2025-03-03 01:26:56 [fb964b0] nobody: updated makefile targets to check and
+    distcheck, to match github
+
+2025-03-03 06:24:57 [3120539] nobody: Merge branch 'main' of
+    github.com:PopeNobody/playground
+
+2025-03-03 01:19:12 [5faea71] Nobody: Create makefile.yml
+
+2025-03-03 06:04:57 [51905c4] nobody: added copy of JSON::Pretty dependency
+
+2025-03-03 06:04:21 [bb3044c] nobody: moved claude to one-ai-per-file
+    approach
+
+2025-03-03 05:22:53 [0d55ec3] nobody: Simplified and moved Config module
+
+2025-03-02 22:49:45 [ab7fb32] nobody: made e2e-test.sh executable
+
+2025-03-02 22:48:42 [b296145] nobody: x
+
+2025-03-02 18:17:53 [c82ffb8] nobody: x
+
+2025-03-02 18:07:08 [24991e8] nobody: take 2
+
+2025-03-02 18:05:10 [8268954] nobody: removed cleanup of tmpdir and moved it
+    to here
+
+2025-03-02 17:56:18 [df902c4] nobody: integraded what claude claims is
+
+the compolete playground script.
+
+2025-03-02 17:52:27 [8dca7f4] nobody: modified to allow eval "$(activate)"
+
+2025-03-02 16:12:17 [6fdd32e] nobody: x
+
+2025-03-02 16:07:37 [4d14d67] nobody: added AI::Connect::Claude and
+    AI::Model::Config
+
+2025-03-02 16:06:33 [e893961] nobody: added bin/ai-cli, bin/cpature.  updated
+    bin/playground-server
+
+2025-03-01 23:14:58 [5d759da] nobody: added Term::ReadLine::Remote and
+    PtyDonor to the mix
+
+2025-03-01 23:14:18 [7d94e93] nobody: x
+
+2025-03-01 21:55:07 [1a180ec] nobody: asdf
+
+
 Version 2.24 (2025-03-10 11:54:17) [c096890]
 
 2025-03-10 11:53:31 [c096890] nobody: added vi-perl to format perl error messages for use with git -q
