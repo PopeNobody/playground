@@ -3,6 +3,7 @@
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
+use lib::prefix;
 use common::sense;
 use autodie;
 use Nobody::Util;
