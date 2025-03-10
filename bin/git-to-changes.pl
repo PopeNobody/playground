@@ -28,6 +28,8 @@ my %cfg = (
   line_width => 78,  # Maximum line width for wrapped text
 );
 
+# this function must not exit.  The GetoptWonderBra code
+# still needs to append the error message if appropriate.
 sub help {
   print <<HELP;
 Usage: $0 [options]
@@ -51,7 +53,6 @@ Examples:
   $0 --since '1 week ago'
   $0 --output CHANGELOG.md --date-format '%Y-%m-%d'
 HELP
-  exit(0);
 }
 
 sub version {
