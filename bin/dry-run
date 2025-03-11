@@ -29,31 +29,13 @@ my ($base)="dat/dry-run/conv";
 $convf=path($convf);
 $conv=AI::Conv->new(path("$convf"));
 my $i;
-my $next = serialPath($base,"1000",".jwrap");
+my $next = serial_path($base,"1000",".jwrap");
 unless(defined($next)) {
   die "failed to find next for ($base,\"1000\",.jwrap)";
 };
-#    for($i=1000;$i<9999;++$i)
-#    {
-#      next if -e "$base.$i.jwrap";
-#      system("cp", "$base.jwrap", "$base.$i.jwrap");
-#      last;
-#    };
 ddx($conv);
 $DB::single=$DB::signle=1;
 my ($msg) = DryRun::next();
 $msg=AI::Msg->new($msg->{role},$msg->{name},$msg->{text});
 $conv->add($msg);
 ddx($conv);
-
-__DATA__
-for($data->[$idx++]) {
-  $conv->add(AI::Msg->new($_->{role},$_->{name},$_->{text}));
-  $conv=$conv->new($conv->file);
-  ddx($conv);
-};
-ddx( { idx=>$idx } );
-unshift(@$data,++$idx);
-spit("$base-text.pl",Dumper(@$data));
-use Data::Dumper;
-$Data::Dumper::Terse=1;
