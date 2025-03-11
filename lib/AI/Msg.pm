@@ -12,7 +12,6 @@ use warnings;
 use AI::Util;
 use Data::Dumper;
 use Carp qw(confess carp croak cluck);
-use Nobody::JSON;
 use common::sense;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(time);
