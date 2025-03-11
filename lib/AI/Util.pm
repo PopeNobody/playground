@@ -12,7 +12,7 @@ require Exporter;
 our(@ISA)=qw(Exporter);
 our(@EXPORT)=qw( 
 pp format serial_maker path cal_loc decode_json encode_json
-true false
+true false safe_isa
 );
 
 *true=*JSON::true;
@@ -20,6 +20,16 @@ true false
 sub format;
 *format=\&AI::TextProc::format;
 
+sub safe_isa {
+  my ($obj,$cls) = splice(@_);
+  for($obj) {
+    return 0 unless defined;
+    return 0 unless ref;
+    return 0 unless blessed;
+    return 0 unless $_->isa($cls);
+    return 1;
+  };
+};
 sub pp {
   local ($Data::Dumper::Deparse)=1;
   local ($Data::Dumper::Terse)=1;
@@ -77,7 +87,6 @@ sub serial_maker($$) {
 };
 
 our ($json) = JSON::PP->new->ascii->pretty->allow_nonref->convert_blessed;
-
 sub encode_json ($);
 sub encode_json($) {
   my @copy=@_;
