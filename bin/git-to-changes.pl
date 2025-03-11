@@ -208,7 +208,7 @@ if (!$ENV{NO_GIT_CONFIG}) {
   }
   
   # Only offer to set up post-commit hook if it doesn't exist
-  if (!$hook_exists) {
+  if (0 && !$hook_exists) {
     print "Would you like to set up a post-commit hook to automatically update the Changes file? [y/N] ";
     my $response = <STDIN>;
     chomp $response;
