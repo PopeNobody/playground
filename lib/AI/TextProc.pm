@@ -6,7 +6,7 @@ BEGIN {
   use lib "$ENV{PWD}";
 };
 use common::sense;
-use Nobody::Util;
+use AI::Util;
 use Path::Tiny;
 use Data::Dumper;
 use Carp qw( confess carp croak cluck );
