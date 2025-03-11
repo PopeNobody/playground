@@ -8,10 +8,9 @@ use lib "lib";
 use strict;
 use warnings;
 use AI::Msg;
+use AI::Util;
 use Storable qw(nstore retrieve);
-use Nobody::Util;
 use Scalar::Util qw(blessed);
-use Nobody::JSON;
 use Path::Tiny;
 use Data::Dumper;
 use Carp qw(confess croak carp cluck);
@@ -67,6 +66,7 @@ sub new {
       text => $path
     });
     dbg( { "ref(\$msg)"=>ref($msg) } );
+    $DB::single=1;
     $self->add($msg);
   }
 

@@ -5,13 +5,11 @@ use warnings;
 use lib "lib";
 use common::sense;
 use autodie;
-use Nobody::Util;
+use AI::Util;
 use Path::Tiny;
 use LWP::UserAgent;
 use HTTP::Request;
-use JSON;
-#use AI::Comm qw(start_comm_server send_message broadcast_message register_handler);
-use AI::Config qw(get_api_key get_api_ua );
+use AI::Config qw(get_api_key get_api_ua get_api_url get_api_mod  );
 use File::Temp qw(tempfile);
 use IO::Socket::UNIX;
 use AnyEvent::HTTPD;
@@ -219,7 +217,7 @@ sub _start_http_server {
   return $httpd;
 }
 
-=head2 save_log($type, $content, $ai_model, $is_error)
+=head2 save_log($type, $content, $is_error)
 
 Saves a request/response log with sensitive info redacted.
 
@@ -344,14 +342,11 @@ Processes an AI request through the appropriate API.
 =cut
 
 sub process_ai_request {
-  my ($self, $input, $ai_model) = @_;
-
-  # Get API info for this model
-  my $api_info = get_api_info($ai_model);
+  my ($self, $input) = @_;
 
   if ($self->{debug}) {
-    print STDERR "Processing request with model: $ai_model\n";
-    print STDERR "Using API URL: " . $api_info->{url}->{api} . "\n";
+    say STDERR "Processing request with model: ".get_api_mod;
+    say STDERR "Using API URL: " . get_api_url;
     # Don't log API_KEY for security
   }
 
@@ -661,6 +656,7 @@ return $instances_html;
 sub _handle_form_submission {
   my ($self, $req) = @_;
 
+  say STDERR "submission";
   my $input = $req->parm('editField');
 
   unless (defined $input && $input =~ /\S/) {
@@ -674,7 +670,7 @@ sub _handle_form_submission {
 
   # First, process through AI if not already containing scripts
   if (!@scripts) {
-    my $ai_response = $self->process_ai_request($input, $self->{model});
+    my $ai_response = $self->process_ai_request($input);
     $response_html .= "<h3>AI Response (Model: $self->{model}):</h3>\n<pre>$ai_response</pre>\n";
 
     # Check if AI response contains scripts
@@ -799,7 +795,7 @@ sub _handle_ai_api_request {
     $response->{results} = \@results;
   } else {
     # Process with AI
-    my $ai_response = $self->process_ai_request($message, $self->{model});
+    my $ai_response = $self->process_ai_request($message);
     $response->{response} = $ai_response;
 
     # Check if AI response has scripts

@@ -23,9 +23,9 @@ case "$PATH" in
   ($AI_PLAYGROUND_DIR:*) ;;
   (*) export PATH="$AI_PLAYGROUND_DIR/bin:$PATH";;
 esac
-case "$PERL5LIB" in
-  ($AI_PLAYGROUND_DIR:*) ;;
-  (*) export PERL5LIB="$AI_PLAYGROUND_DIR/lib:$PERL5LIB";;
+case ":$PERL5LIB:" in
+  (*:$AI_PLAYGROUND_DIR/lib:*) ;;
+  (*) export PERL5LIB="$AI_PLAYGROUND_DIR/lib${PERL5LIB:+:$PERL5LIB}";;
 esac
 # Change command prompt to indicate activation
 export PS1=$'\n'"(ai-playground) $PS1"

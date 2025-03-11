@@ -3,9 +3,7 @@ package AI::Config;
 use strict;
 use warnings;
 use Exporter 'import';
-use Nobody::Util;
-use JSON::Pretty;
-use Path::Tiny;
+use AI::Util;
 use LWP::UserAgent;
 
 our @EXPORT_OK = qw(
@@ -34,7 +32,11 @@ sub redact {
   return grep { s{$config{api_key}}{$config{dummy}}g } @_;
 };
 BEGIN {
-  *config = decode_json(path("etc/model.json")->slurp);
+  my $model = path("etc/model.json");
+  unless($model->exists) {
+    system("ln -sf \$(id -un).json etc/model.json");
+  };
+  *config = decode_json($model->slurp);
   if(defined($ENV{API_KEY}) and defined($ENV{API_MOD})) {
     $config{dummy}=$config{api_key}=$ENV{API_KEY};
     delete $ENV{API_KEY};

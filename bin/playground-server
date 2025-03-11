@@ -15,14 +15,21 @@ BEGIN {
 }
 use common::sense;
 use autodie;
-use Nobody::Util;
+use AI::Util;
 use Path::Tiny;
 use Getopt::WonderBra;
 use lib 'lib';
 use AI::Playground;
 
 our(@VERSION) = qw( 0 1 0 );
-
+$SIG{__DIE__}=sub {
+  $DB::single=1;
+  die @_;
+};
+$SIG{__WARN__}=sub {
+  $DB::single=1;
+  warn @_;
+};
 # Parse command-line options
 my %options = (
     port => $<,
