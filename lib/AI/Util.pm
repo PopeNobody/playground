@@ -6,15 +6,24 @@ use AI::TextProc;
 use Carp qw(confess);
 use Path::Tiny;
 use POSIX qw(strftime mktime );
+use JSON::PP;
+use Data::Dumper;
 require Exporter;
 our(@ISA)=qw(Exporter);
-our(@EXPORT)=qw( pp format serial_maker path cal_loc  );
+our(@EXPORT)=qw( 
+pp format serial_maker path cal_loc decode_json encode_json
+true false
+);
 
+*true=*JSON::true;
+*false=*JSON::false;
 sub format;
 *format=\&AI::TextProc::format;
 
 sub pp {
-  return line_dump(@_);
+  local ($Data::Dumper::Deparse)=1;
+  local ($Data::Dumper::Terse)=1;
+  return Dumper(@_);
 };
 sub serdate(;$)
 {
@@ -65,6 +74,29 @@ sub serial_maker($$) {
       };
     };
   };
+};
+
+our ($json) = JSON::PP->new->ascii->pretty->allow_nonref->convert_blessed;
+
+sub encode_json ($);
+sub encode_json($) {
+  my @copy=@_;
+  local($_);
+  eval {
+    ($_)=$json->encode(@_);
+  };
+  return $_ if defined;
+  ddx(\@copy);
+  die join("\n\n",$@,pp(@copy));
+};
+sub decode_json {
+  my @copy=@_;
+  local($_);
+  eval {
+    ($_)=$json->decode(@_);
+  };
+  return $_ if defined;
+  die  join("\n\n",$@,pp(@copy));
 };
 
 
