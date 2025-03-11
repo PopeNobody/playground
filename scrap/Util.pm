@@ -81,7 +81,7 @@ BEGIN {
         WNOHANG avg class deparse dirname file_id getcwd matrix max vcmp
         maybeRef min mkdir_p mkref open_fds pasteLines path serdate spit
         spit_fh suck suckdir sum uniq setfl getfl nonblock flatten
-        safe_isa serialPath
+        safe_isa serial_path
         }
       );
   push(@EXPORT_OK, @Scalar::Util::EXPORT_OK);
@@ -138,7 +138,7 @@ sub mkdir_p($;$) {
   mkdir_p(join("/",@dir),$mode);
   mkdir($dir,$mode); 
 };
-sub serialPath {
+sub serial_path {
   local(@_)=@_;
   my $i;
   for($i=0;$i<@_;$i++) {
