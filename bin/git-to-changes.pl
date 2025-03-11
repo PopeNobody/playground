@@ -157,7 +157,7 @@ foreach my $entry (@log_entries) {
 my $changes_file = path($cfg{output});
 my $existing_content = '';
 if (-e $changes_file) {
-  $changes_file->delete;
+  $changes_file->remove;
 }
 
 # Format the output
