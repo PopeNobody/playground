@@ -24,8 +24,8 @@ our(@VERSION) = qw( 0 1 0 );
 use Getopt::WonderBra;
 use AI::Conv;
 
-@ARGV = getopt("dc:f:e",@ARGV);
-my ($delete,$text) = 0;
+@ARGV = getopt("mdc:f:e",@ARGV);
+my ($delete,$text,$mock) = 0;
 my ($edit,$prompt_file,$conv) = ( 1, "prompt.txt", "test.jwrap" );
 my ($conv_file) = path("dat/test.gpt/conv.jwrap");
 sub help {
@@ -55,34 +55,60 @@ while(($_=shift)ne'--'){
     $delete=1;
   } elsif ( $_ eq '-e' ) {
     $edit=1-$edit;
+  } elsif ( $_ eq '-m' ) {
+    $mock=1;
+    $edit=1;
   } else {
     die "bad arg: $_";
   };
 };
-if($edit) {
-  $prompt_file//="prompt.txt";
-  system("exec >/dev/tty </dev/tty 2>&1; vi $prompt_file");
-  die "edit session failed" if $?;
-}
-if(defined($prompt_file)){
-  $prompt_file=path($prompt_file);
-  $text=$prompt_file->slurp;
-};
-if($delete) {
-  $conv_file->remove if $conv_file->exists;
+sub edit($) {
+  my ($file)=shift;
+  system("exec >/dev/tty </dev/tty 2>&1; vi  $file");
+  die "editor returned error" if $?;
 };
 my $conv = AI::Conv->new($conv_file);
 
-my $res = $conv->transact($text);
-if(defined($prompt_file)){
-  $prompt_file->remove();
-};
-if($res->{type} eq "text/plain"){
-  if($edit) {
-    system("exec >/dev/tty </dev/tty 2>&1; vi  $conv_file");
-  } else {
-    say $conv_file->slurp;
+sub transact {
+  my $res;
+  if($mock){
+    my ($res_file) = path("response.txt");
+    $res_file->spew("Edit this file into the mock respons");
+    edit($res_file);
+    $res = $res_file->slurp;
+    $res = AI::Msg->new("assistant",$ENV{API_MOD},$res);
+    $res=$conv->add($res);
+  }else{
+    $prompt_file=path($prompt_file) unless ref $prompt_file;
+    if($edit) {
+      edit($prompt_file);
+    }
+    $text=$prompt_file->slurp;
+    if($delete) {
+      $conv_file->remove if $conv_file->exists;
+    };
+    $res = $conv->transact($text);
   };
-} else {
-  system("bin/capture -f capture.log -- script");
-};
+  return $res;
+}
+my $res;
+do {
+  $res = transact();
+  if($res->{type} eq "text/plain"){
+    if($edit) {
+      edit($conv_file);
+    } else {
+      say $conv_file->slurp;
+    };
+  } else {
+    my ($script)=path("ai-script");
+    $script->spew($res->{text});
+    $script->chmod(0755);
+    my ($capture)=path("log/capture.log");
+    system("bin/capture -f $capture perl ./$script");
+    if($edit) {
+      edit($capture);  
+    };
+    transact($capture->slurp);
+  };
+} while $res->{type} ne "text/plain";

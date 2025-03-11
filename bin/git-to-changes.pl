@@ -28,10 +28,10 @@ my %cfg = (
   line_width => 78,  # Maximum line width for wrapped text
 );
 
-# this function must not exit.  The GetoptWonderBra code
+# this function must not exit.  The Getopt::WonderBra code
 # still needs to append the error message if appropriate.
 sub help {
-  print <<HELP;
+  print qq{
 Usage: $0 [options]
 
 Exports git logs to a Changes file in a formatted way.
@@ -52,7 +52,7 @@ Options:
 Examples:
   $0 --since '1 week ago'
   $0 --output CHANGELOG.md --date-format '%Y-%m-%d'
-HELP
+  };
 }
 
 sub version {
@@ -157,7 +157,7 @@ foreach my $entry (@log_entries) {
 my $changes_file = path($cfg{output});
 my $existing_content = '';
 if (-e $changes_file) {
-  $existing_content = $changes_file->slurp;
+  $changes_file->delete;
 }
 
 # Format the output
@@ -170,14 +170,16 @@ if ($cfg{sections} && $cfg{commit_count} > 0) {
   $output .= "\n\n";
   $output .= $existing_content;
 } else {
-  # Just append the new entries at the beginning
+  # Just prepend the new entries
   $output = join("\n", @filtered_entries);
   $output .= "\n\n";
   $output .= $existing_content;
 }
 
 # Write the output file
-$changes_file->spew($output);
+#    $changes_file->spew($output);
+system("wc -l $changes_file");
+
 print "Exported $cfg{commit_count} git commits to $cfg{output}\n";
 
 # Add an entry in the git config to use this script
@@ -185,7 +187,8 @@ if (!$ENV{NO_GIT_CONFIG}) {
   my $script_path = path($0)->absolute;
   
   # Check if the git alias already exists
-  my $existing_alias = qx(cd $cfg{repo_path} && git config --local --get alias.changelog);
+  my $existing_alias = qx(cd $cfg{repo_path} && 
+    git config --local --get alias.changelog);
   chomp $existing_alias;
   
   if (!$existing_alias) {
