@@ -68,7 +68,7 @@ parsed, or forwarded to another AI for review.
       rollback. [[ Nobody's Note.  Not quite qutomatic.  Me.  ]]
     - Network requests are **proxied and logged**.
       [[ Nobody's note:  if you need or want a private line, let me know, I'm
-        not trying to get up on your business ]]
+      not trying to get up in your business ]]
 
 ## ADDITIONAL NOTES - Keep text lines
     - **under 80 characters** long for readability  
