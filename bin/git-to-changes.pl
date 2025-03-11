@@ -177,7 +177,7 @@ if ($cfg{sections} && $cfg{commit_count} > 0) {
 }
 
 # Write the output file
-#    $changes_file->spew($output);
+$changes_file->spew($output);
 system("wc -l $changes_file");
 
 print "Exported $cfg{commit_count} git commits to $cfg{output}\n";
