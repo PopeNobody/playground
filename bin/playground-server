@@ -4,6 +4,15 @@ eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
 use lib "lib";
+BEGIN {
+  # Check for required environment variables
+  # this is way up here to check before the AI::Config init
+  # code uses and devours them.  Because I don't want them 
+  # lurking at /proc/$$/envronment
+  unless (defined($ENV{API_KEY}) and defined($ENV{API_MOD})) {
+    die "\$API_KEY and \$API_MOD must be set\n";
+  }
+}
 use common::sense;
 use autodie;
 use Nobody::Util;
@@ -16,12 +25,11 @@ our(@VERSION) = qw( 0 1 0 );
 
 # Parse command-line options
 my %options = (
-    port => $ENV{PORT} || $< || 4001,
-    model => $ENV{API_MOD} || 'claude',
-    debug => defined($ENV{DEBUG}) ? $ENV{DEBUG} : 1,
-    secure_mode => $ENV{SECURE_MODE} || 0,
+    port => $<,
+    model => $ENV{API_MOD},
+    debug => defined($ENV{DEBUG}) ? 1 : 0 ,
+    secure_mode => defined($ENV{SECURE_MODE}) ? 1 : 0,
 );
-
 @ARGV = getopt("p:m:ds", @ARGV);
 while (@ARGV && $ARGV[0] ne '--') {
     my $arg = shift @ARGV;
@@ -49,12 +57,11 @@ Options:
   -m MODEL         AI model to use (default: $options{model})
   -d               Enable debug output
   -s               Enable secure mode
-  -h, --help       Show this help message
-  -v, --version    Show version information
+  --help           Show this help message
+  --version        Show version information
 
 Environment variables:
-  PORT             Port to listen on
-  API_MOD          AI model to use
+  API_MOD          AI model to use ( defaults to \$(id -u)
   DEBUG            Enable debug output
   SECURE_MODE      Enable secure mode
   API_KEY          API key for the selected model
@@ -67,14 +74,6 @@ sub version {
     exit(0);
 }
 
-# Handle help and version flags
-help() if grep { $_ eq '-h' || $_ eq '--help' } @ARGV;
-version() if grep { $_ eq '-v' || $_ eq '--version' } @ARGV;
-
-# Check for required environment variables
-unless ($ENV{API_KEY} || $ENV{ANTHROPIC_API_KEY} || $ENV{OPENAI_API_KEY} || $ENV{GEMINI_API_KEY} || $ENV{XAI_API_KEY}) {
-    die "API_KEY or model-specific API key environment variable must be set\n";
-}
 
 # Create and start the AI Playground server
 my $playground = AI::Playground->new(

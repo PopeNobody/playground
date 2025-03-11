@@ -13,7 +13,7 @@ use Carp qw( confess carp croak cluck );
 use common::sense;
 use Scalar::Util qw(blessed);
 use Text::Wrap qw(wrap $columns );
-$columns=30;
+$columns=80;
 our(@keys);
 sub format {
   local(@_)=@_;

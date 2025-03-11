@@ -1,3 +1,5 @@
+use lib 'lib';
+
 package IO::File;
 sub dbg {};
 package main;
@@ -7,15 +9,10 @@ package AI::Msg;
 
 use strict;
 use warnings;
-BEGIN {
-  use lib "$ENV{PWD}";
-};
-use Nobody::Util;
-use Path::Tiny;
+use AI::Util;
 use Data::Dumper;
 use Carp qw(confess carp croak cluck);
 use Nobody::JSON;
-use AI::TextProc;
 use common::sense;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(time);

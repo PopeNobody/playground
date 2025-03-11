@@ -4,9 +4,9 @@ sub dbg {
 package AI::Conv;
 *dbg=*IO::File::dbg;
 
+use lib "lib";
 use strict;
 use warnings;
-use lib "$ENV{PWD}";
 use AI::Msg;
 use Storable qw(nstore retrieve);
 use Nobody::Util;
@@ -249,5 +249,4 @@ sub transact {
 
   return $msg;
 }
-
 1;
