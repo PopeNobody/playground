@@ -39,7 +39,7 @@ BEGIN {
   *config = decode_json($model->slurp);
   if(defined($ENV{API_KEY}) and defined($ENV{API_MOD})) {
     $config{dummy}=$config{api_key}=$ENV{API_KEY};
-    delete $ENV{API_KEY};
+    delete $ENV{API_KEY} unless $^P;
     $config{dummy} =~ s{.}{.}g;
     die "missing api key" unless defined get_api_key();
     die "No api_mod" unless defined get_api_mod();

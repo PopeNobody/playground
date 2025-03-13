@@ -11,8 +11,9 @@ use Data::Dumper;
 require Exporter;
 our(@ISA)=qw(Exporter);
 our(@EXPORT)=qw( 
-pp format serial_maker path cal_loc decode_json encode_json
-true false safe_isa
+  cal_loc decode_json encode_json false format
+  path pp safe_isa serdate serial_maker
+  true
 );
 
 *true=*JSON::true;
