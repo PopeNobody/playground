@@ -12,7 +12,7 @@ require Exporter;
 our(@ISA)=qw(Exporter);
 our(@EXPORT)=qw( 
 pp format serial_maker path cal_loc decode_json encode_json
-true false safe_isa
+true false safe_isa serdate
 );
 
 *true=*JSON::true;
