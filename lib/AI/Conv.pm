@@ -163,30 +163,18 @@ sub as_json {
 }
 
 # Initialize globals at module load time
-
+sub last {
+  my ($self)=shift;
+  my ($msgs)=$self->{msgs};
+  my ($mcnt)=0+@{$msgs};
+  print STDERR Dumper([$msgs, $mcnt]);
+  $msgs->[$mcnt-1];
+};
 sub transact {
-  say STDERR "transact(",Dumper(\@_).")";
-  my ($self, $msg) = @_;
-  
+  my ($self) = @_;
+  say STDERR ("self->".ref($self));
   croak "conv object required" unless blessed($self) && $self->isa('AI::Conv');
   croak "API not initialized" unless get_api_ua();
-
-  # Append user message to conv unless empty
-  croak "Message is required" unless defined $msg;
-  if(ref($msg) ne 'AI::Msg'){
-    $msg = AI::Msg->new(
-      {
-        role => "user",
-        name => "user",
-        text => $msg
-      }
-    );
-  };
-  if(ref($msg) ne "AI::Msg"){
-    die "bad msg: ", pp($msg), "\n";
-  };
-  $self->add($msg);
-  say STDERR "=========\n",$self->as_json,"\n========\n";
 
   # Prepare HTTP request
   my $req = HTTP::Request->new(POST => get_api_url()."/chat/completions");
@@ -196,8 +184,6 @@ sub transact {
   my $payload = {
     model => get_api_mod(),
     messages => [],
-    temperature => 0.7,
-    max_tokens => 4096
   };
 
   # Extract messages from conversation
@@ -208,18 +194,20 @@ sub transact {
     };
   }
 
-  $req->content(encode_json($payload));
+  my $json=encode_json($payload);
+  $req->content($json);
 
   # Store redacted request for debugging
   my $redacted_req = $req->clone;
   $redacted_req->header('Authorization', 'Bearer [REDACTED]');
-  path("req.log")->spew($redacted_req->as_string);
+  path("req.".serdate.".log")->spew($redacted_req->as_string);
 
+  $DB::single=1;
   # Send request
   my $res = get_api_ua()->request($req);
 
   # Store response for debugging
-  path("res.log")->spew($res->as_string);
+  path("res.".serdate.".log")->spew($res->as_string);
 
   # Handle errors
   unless ($res->is_success) {

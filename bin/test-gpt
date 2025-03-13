@@ -67,6 +67,9 @@ sub edit($) {
   system("exec >/dev/tty </dev/tty 2>&1; vi  $file");
   die "editor returned error" if $?;
 };
+if($delete) {
+  $conv_file->remove if $conv_file->exists;
+};
 my $conv = AI::Conv->new($conv_file);
 
 sub transact {
@@ -79,15 +82,15 @@ sub transact {
     $res = AI::Msg->new("assistant",$ENV{API_MOD},$res);
     $res=$conv->add($res);
   }else{
-    $prompt_file=path($prompt_file) unless ref $prompt_file;
-    if($edit) {
-      edit($prompt_file);
-    }
-    $text=$prompt_file->slurp;
-    if($delete) {
-      $conv_file->remove if $conv_file->exists;
+    if($conv->last->{role} ne "user") {
+      $prompt_file=path($prompt_file) unless ref $prompt_file;
+      if($edit) {
+        edit($prompt_file);
+      }
+      $text=$prompt_file->slurp;
+      $conv->add(AI::Msg->new("user","nobody",$text));
     };
-    $res = $conv->transact($text);
+    $res = $conv->transact();
   };
   return $res;
 }
@@ -109,6 +112,8 @@ do {
     if($edit) {
       edit($capture);  
     };
-    transact($capture->slurp);
+    my ($msg) = AI::Msg->new("system","output",$capture->slurp);
+    $conv->add($msg);
+    transact();
   };
 } while $res->{type} ne "text/plain";
