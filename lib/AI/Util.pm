@@ -64,9 +64,10 @@ sub eex {
   print STDERR ppx;
 };
 
-sub serial_maker($$) {
+sub serial_maker($$;$) {
   my ($fmt)=shift;
   my ($max)=shift;
+  my ($dir)=map { !!$_ } shift;
   my ($num)=0;
   return sub {
     local($_);
@@ -74,15 +75,25 @@ sub serial_maker($$) {
     for(;;){
       return undef if($num>$max);
       ($res{fn}=path(sprintf($fmt,$num)))->parent->mkdir;
-      no autodie 'sysopen';
-      if(sysopen($res{fh},$res{fn},Fcntl::O_CREAT|Fcntl::O_EXCL())){
-        eex(\%res);
-        return \%res 
-      } elsif ( $!{EEXIST} ) {
-        ++$num;
+      no autodie qw(sysopen mkdir);
+      if($dir) {
+        if(mkdir($res{fn})){
+          return \%res;
+        } elsif ( $!{EEXIST} ) {
+          ++$num;
+        } else {
+          confess "mkdir:$res{fn}:$!";
+        };
       } else {
-        confess "sysopen:$res{fh}:$!";
-      };
+        if(sysopen($res{fh},$res{fn},Fcntl::O_CREAT|Fcntl::O_EXCL())){
+          eex(\%res);
+          return \%res 
+        } elsif ( $!{EEXIST} ) {
+          ++$num;
+        } else {
+          confess "sysopen:$res{fn}:$!";
+        };
+      }
     };
   };
 };

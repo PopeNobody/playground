@@ -4,7 +4,6 @@ eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
 use FindBin qw($Bin);
-use Path::Tiny;
 open(STDERR,"|cat >&2");
 open(STDOUT,">&STDERR");
 BEGIN {
@@ -17,6 +16,7 @@ BEGIN {
   use lib $FindBin::prefix."/lib";
 };
 use common::sense;
+use AI::Util;
 use autodie;
 use Nobody::Util;
 use Snatcher;
@@ -26,8 +26,9 @@ use AI::Conv;
 
 @ARGV = getopt("mdc:f:e",@ARGV);
 my ($delete,$text,$mock) = 0;
-my ($edit,$prompt_file,$conv) = ( 1, "prompt.txt", "test.jwrap" );
-my ($conv_file) = path("dat/test.gpt/conv.jwrap");
+my ($edit,$prompt_file,$conv) = ( 1, "prompt.txt");
+my ($maker)=serial_maker("dat/test-gpt-%04d",9999,1);
+my ($conv_dir) = path($maker->()->{fn});
 sub help {
   say "usage; $0 [ -f \$prompt_file ] [ -e ]";
   say "";
@@ -48,7 +49,7 @@ sub version {
 
 while(($_=shift)ne'--'){
   if( $_ eq '-c') {
-    $conv_file=path(shift);
+    $conv_dir=path(shift);
   } elsif( $_ eq '-f') {
     $prompt_file=path(shift);
   } elsif ( $_ eq '-d' ) {
@@ -64,13 +65,14 @@ while(($_=shift)ne'--'){
 };
 sub edit($) {
   my ($file)=shift;
+  ddx({file=>$file});
   system("exec >/dev/tty </dev/tty 2>&1; vi  $file");
   die "editor returned error" if $?;
 };
 if($delete) {
-  $conv_file->remove if $conv_file->exists;
+  $conv_dir->remove if $conv_dir->exists;
 };
-my $conv = AI::Conv->new($conv_file);
+my $conv = AI::Conv->new($conv_dir);
 
 sub transact {
   my $res;
@@ -99,9 +101,9 @@ do {
   $res = transact();
   if($res->{type} eq "text/plain"){
     if($edit) {
-      edit($conv_file);
+      edit($conv->file);
     } else {
-      say $conv_file->slurp;
+      say $conv->file->slurp;
     };
   } else {
     my ($script)=path("ai-script");
