@@ -11,7 +11,8 @@ use Data::Dumper;
 require Exporter;
 our(@ISA)=qw(Exporter);
 our(@EXPORT)=qw( 
-pp format serial_maker path cal_loc decode_json encode_json
+pp ppx dd ddx ee eex
+format serial_maker path cal_loc decode_json encode_json
 true false safe_isa
 );
 
@@ -51,16 +52,16 @@ sub ppx {
   return join(":",call_loc,pp(@_));
 };
 sub dd {
-  print STDOUT pp;
+  print STDOUT pp(@_);
 };
 sub ddx {
-  print STDOUT ppx;
+  print STDOUT ppx(@_);
 };
 sub ee {
-  print STDERR pp;
+  print STDERR pp(@_);
 };
 sub eex {
-  print STDERR ppx;
+  print STDERR ppx(@_);
 };
 
 sub serial_maker($$) {
