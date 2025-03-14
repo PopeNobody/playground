@@ -26,10 +26,11 @@ my $mime_types = MIME::Types->new();
 my @test_scripts;
 eval "use AI::Msg";
 die "$@" if $@;
-
+@test_scripts=();
 # Run tests for each script
 foreach my $test (@test_scripts) {
     print "\nTesting: $test->{name}\n";
+    $DB::single=1;
     my $msg = AI::Msg->new('user', 'testuser', $test->{script});
     ok(defined $msg, "Created message with $test->{name}");
     
@@ -56,6 +57,7 @@ print "\nTesting edge cases:\n";
 
 my $whitespace_script = "\n\n#!/bin/bash\necho 'Shebang with leading whitespace'";
 my $whitespace_msg = AI::Msg->new('user', 'testuser', $whitespace_script);
+print $whitespace_msg->text;
 my $sh_mime = $mime_types->type(ext => 'sh');
 my $expected_sh_type = $sh_mime ? $sh_mime->type : 'application/x-sh';
 is($whitespace_msg->{type}, 'application/x-sh', 

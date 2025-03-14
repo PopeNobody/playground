@@ -66,11 +66,11 @@ sub check {
 
 # Helper function to detect script type from shebang line
 sub _detect_script_type {
-  my ($text) = @_;
-  
+  (my $text,my @text) = split(m{\n},shift); 
+  ddx( { line=>$text, rest=>\@text } );
   # Default to plain text if no shebang
   return 'text/plain' unless $text =~ /^#!(.+)$/m;
-  
+  print STDERR $1; 
   my $shebang = $1;
   my $ext = 'x';  # default executable extension
   
@@ -96,7 +96,18 @@ sub _detect_script_type {
     return "application/x-$ext";
   }
 }
-
+sub name {
+  my ($self)=shift;
+  $self->{name};
+}
+sub role {
+  my ($self)=shift;
+  $self->{role};
+}
+sub text {
+  my ($self)=shift;
+  $self->{text};
+}
 sub new {
   my ($class) = shift;
   $_ = (ref || $_) for $class;
@@ -140,7 +151,7 @@ sub new {
   }
   
   # Trim whitespace from name and role
-  for(qw(name role)){
+  for(qw(name role text)){
     $self->{$_} =~ s{^\s+}{};
     $self->{$_} =~ s{\s+$}{};
   };

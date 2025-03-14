@@ -26,16 +26,18 @@ use AI::Conv;
 
 @ARGV = getopt("mdc:f:e",@ARGV);
 my ($delete,$text,$mock) = 0;
-my ($edit,$prompt_file,$conv) = ( 1, "prompt.txt");
-my ($maker)=serial_maker("dat/test-gpt-%04d",9999,1);
-my ($conv_dir) = path($maker->()->{fn});
+my ($edit,$prompt_file,$conv) = ( 1 );
 sub help {
   say "usage; $0 [ -f \$prompt_file ] [ -e ]";
   say "";
-  say "   -c \$conv load/store conversation from this file";
-  say "       extension should be jwrap or wrapped json";
+  say "   -c \$conv dir: this will be the conv directory";
+  say "       the mail file will be called conv.jwrap";
+  say "       ( this dir will be used until system is";
+  say "         instructed to use a new one, or it disappars )";
   say "";
   say "   -f \$prompt_file: prompt from file \$prompt_file";
+  say "      if file is not absolute, will be relative to";
+  say "      conversation dir";
   say "";
   say "   -e edit first.  filename is still used, if provided";
   say "      this is a toggle, and defaults to on";
@@ -46,7 +48,7 @@ sub help {
 sub version {
   say "@VERSION";
 };
-
+my $conv_dir;
 while(($_=shift)ne'--'){
   if( $_ eq '-c') {
     $conv_dir=path(shift);
@@ -69,9 +71,18 @@ sub edit($) {
   system("exec >/dev/tty </dev/tty 2>&1; vi  $file");
   die "editor returned error" if $?;
 };
-if($delete) {
-  $conv_dir->remove if $conv_dir->exists;
+my ($conv_list)=path("etc/convs.lst");
+my (@convs) = grep { -d } split(m{\n},$conv_list);
+if(defined($conv_dir)){
+  unshift(@convs,$conv_dir);
+  $conv_dir->mkdir;
+} elsif ( @convs ) {
+  $conv_dir=$convs[0];
+} else {
+  my ($maker)=serial_maker("dat/test-gpt-%04d",9999,1);
+  $conv_dir = path($maker->()->{fn});
 };
+my $prompt_file = $conv_dir->child("prompt.txt");
 my $conv = AI::Conv->new($conv_dir);
 
 sub transact {

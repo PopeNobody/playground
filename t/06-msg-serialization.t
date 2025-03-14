@@ -5,9 +5,8 @@ use warnings;
 use FindBin qw($Bin);
 use lib "$Bin/../lib";
 use Path::Tiny;
-use Nobody::Util;
 use AI::Msg;
-use Nobody::JSON;
+use AI::Util;
 use Test::More;
 
 # Create test directory if it doesn't exist

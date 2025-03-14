@@ -215,7 +215,7 @@ sub transact {
   my $disp = $req->as_string;
   $disp=AI::Config->redact($disp);
   my $uniq=serdate;
-  $self->dir->child("req.".$uniq.".log")->spew($disp);
+  $self->dir->child("ex.".$uniq.".req.log")->spew($disp);
 
   $DB::single=1;
   # Send request
@@ -224,9 +224,9 @@ sub transact {
     $ua->cookie_jar($self->jar);
   };
   my $res = get_api_ua()->request($req);
-
+  $self->jar->save($self->jar->{file});
   # Store response for debugging
-  $self->dir->child("res.".$uniq.".log")->spew($res->as_string);
+  $self->dir->child("ex.".$uniq.".res.log")->spew($res->as_string);
 
   # Handle errors
   unless ($res->is_success) {
