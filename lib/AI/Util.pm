@@ -54,16 +54,16 @@ sub ppx {
   return join(":",call_loc,pp(@_));
 };
 sub dd {
-  print STDOUT pp;
+  print STDOUT pp(@_);
 };
 sub ddx {
-  print STDOUT ppx;
+  print STDOUT ppx(@_);
 };
 sub ee {
-  print STDERR pp;
+  print STDERR pp(@_);
 };
 sub eex {
-  print STDERR ppx;
+  print STDERR ppx(@_);
 };
 
 sub serial_maker($$;$) {
