@@ -16,15 +16,12 @@ use Data::Dumper;
 use Carp qw(confess croak carp cluck);
 use common::sense;
 use LWP::UserAgent;
+use HTTP::Cookies::Netscape;
 use AI::Config qw( get_api_key get_api_ua get_api_mod get_api_url);
 # Add overloading for stringification to JSON
 use overload '""' => sub { confess "don't stringify me bro!"; };
 
 # Persistent user agent and API info
-sub file {
-  my ($self) = shift;
-  $self->{file};
-};
 
 sub check {
   my ($self)=shift;
@@ -42,15 +39,25 @@ sub check {
 };
 
 sub new {
-  my ($class, $file) = ( shift, shift);
+  my ($class, $dir, $file,$jar) = ( shift, shift);
   ($class) = ( ref($class) || $class );
-  die "file is required" unless defined($file);
-  die "file should be Path::Tiny"  unless blessed($file)
-    and $file->isa('Path::Tiny');
-  $file=$file->absolute;
+  die "file is required" unless defined($dir);
+  die "file should be Path::Tiny"  unless blessed($dir)
+    and $dir->isa('Path::Tiny');
+  $dir=$dir->absolute->mkdir;
+  $file=$dir->child("conv.jwrap");
+  $jar=$dir->child("cookies.txt");
+  $jar=HTTP::Cookies::Netscape->new(file=>$jar);
+  if(-e $jar->{file}){
+    $jar->load;
+  } else {
+    $jar->save;
+  };
   my $self={
+    dir=>$dir,
     file => $file,
     msgs => [ ],
+    jar => $jar,
   };
   bless $self, $class;
   if (-e $file) {
@@ -72,7 +79,10 @@ sub new {
 
   return $self->check();
 }
-
+sub jar {
+  my ($self)=shift;
+  $self->{jar};
+};
 sub save_jwrap {
   my ($self,$file) = @_;
   $file //= $self->{file};
@@ -161,43 +171,33 @@ sub as_json {
     model => get_api_mod(),
   });
 }
-
-# Initialize globals at module load time
-
+sub file {
+  my ($self) = shift;
+  $self->{file};
+};
+sub dir {
+  my ($self)=shift;
+  $self->{dir};
+};
+sub last {
+  my ($self)=shift;
+  my ($msgs)=$self->{msgs};
+  my ($mcnt)=0+@{$msgs};
+  print STDERR Dumper([$msgs, $mcnt]);
+  $msgs->[$mcnt-1];
+};
 sub transact {
-  say STDERR "transact(",Dumper(\@_).")";
-  my ($self, $msg) = @_;
-  
+  my ($self) = @_;
+  say STDERR ("self->".ref($self));
   croak "conv object required" unless blessed($self) && $self->isa('AI::Conv');
-  croak "API not initialized" unless get_api_ua();
-
-  # Append user message to conv unless empty
-  croak "Message is required" unless defined $msg;
-  if(ref($msg) ne 'AI::Msg'){
-    $msg = AI::Msg->new(
-      {
-        role => "user",
-        name => "user",
-        text => $msg
-      }
-    );
-  };
-  if(ref($msg) ne "AI::Msg"){
-    die "bad msg: ", pp($msg), "\n";
-  };
-  $self->add($msg);
-  say STDERR "=========\n",$self->as_json,"\n========\n";
 
   # Prepare HTTP request
   my $req = HTTP::Request->new(POST => get_api_url()."/chat/completions");
-  $req->header('Content-Type' => 'application/json');
 
   # Prepare payload with OpenAI format
   my $payload = {
     model => get_api_mod(),
     messages => [],
-    temperature => 0.7,
-    max_tokens => 4096
   };
 
   # Extract messages from conversation
@@ -208,41 +208,52 @@ sub transact {
     };
   }
 
-  $req->content(encode_json($payload));
+  my $json=encode_json($payload);
+  $req->content($json);
 
   # Store redacted request for debugging
-  my $redacted_req = $req->clone;
-  $redacted_req->header('Authorization', 'Bearer [REDACTED]');
-  path("req.log")->spew($redacted_req->as_string);
+  my $disp = $req->as_string;
+  $disp=AI::Config->redact($disp);
+  my $uniq=serdate;
+  $self->dir->child("req.".$uniq.".log")->spew($disp);
 
+  $DB::single=1;
   # Send request
+  my $ua = get_api_ua();
+  unless($ua->cookie_jar) {
+    $ua->cookie_jar($self->jar);
+  };
   my $res = get_api_ua()->request($req);
 
   # Store response for debugging
-  path("res.log")->spew($res->as_string);
+  $self->dir->child("res.".$uniq.".log")->spew($res->as_string);
 
   # Handle errors
   unless ($res->is_success) {
+    $self->jar->save;
     my $error = "API request failed: " . $res->status_line . "\n\n";
-    $error .= "Request: " . $redacted_req->as_string . "\n\n";
+    $error .= "Request: $disp\n\n";
     $error .= "Response: " . $res->as_string;
     croak $error;
   }
 
   # Parse response
   my $response_data = decode_json($res->decoded_content);
-  my $reply = $response_data->{choices}[0]{message}{content};
+  my ($reply);
+  if(defined($response_data->{choices}[0]{message}{content})){
+    $reply = $response_data->{choices}[0]{message}{content};
+  }
 
   # Handle missing content
   unless (defined $reply and length $reply) {
     $reply = "No response content received from API. ".
-    "Full response: " . encode_json($response_data);
+    "Full response: " . $res->decoded_content
   }
   $DB::single=1;
   # Append AI response to conv
   my $msg = AI::Msg->new({
       role => "assistant",
-      name => "ai",
+      name => get_api_mod,
       text => $reply
     });
   $self->add($msg);
