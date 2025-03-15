@@ -5,3 +5,4 @@ test-gpt.jwrap.old
 *.hide
 prompt.txt
 etc/dry-run-next
+dat
