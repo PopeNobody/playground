@@ -3,8 +3,8 @@
   "model" : "grok-2-latest",
   "handle" : "grok",
   "url" : {
-    "api" : "https://api.x.ai/v1",
-    "xxxapi" : "http://10.10.10.1:4002/grok"
+    "xxx-api" : "https://api.x.ai/v1",
+    "api" : "http://10.10.10.1:4002/grok"
   },
   "name" : "Grok Xai"
 }
