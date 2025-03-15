@@ -18,7 +18,6 @@ BEGIN {
 use common::sense;
 use AI::Util;
 use autodie;
-use Nobody::Util;
 use Snatcher;
 our(@VERSION) = qw( 0 1 0 );
 use Getopt::WonderBra;
