@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
 package AI::Util;
-use lib "lib";
+use FindBin qw($Bin);
+use lib "$Bin/../lib";
 use AI::TextProc;
 use Carp qw(confess);
 use Path::Tiny;
