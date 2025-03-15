@@ -26,7 +26,6 @@ my $mime_types = MIME::Types->new();
 my @test_scripts;
 eval "use AI::Msg";
 die "$@" if $@;
-@test_scripts=();
 # Run tests for each script
 foreach my $test (@test_scripts) {
     print "\nTesting: $test->{name}\n";
@@ -89,7 +88,7 @@ BEGIN {
   @test_scripts = (
     {
         name => "Bash script",
-        script => "#!/bin/bash\necho 'Hello from Bash!'",
+        script => "#!bash\necho 'Hello from Bash!'",
         extension => 'sh'
     },
     {

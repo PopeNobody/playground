@@ -18,10 +18,11 @@ use common::sense;
 use LWP::UserAgent;
 use HTTP::Cookies::Netscape;
 use AI::Config qw( get_api_key get_api_ua get_api_mod get_api_url);
+use Scalar::Util qw(refaddr);
 # Add overloading for stringification to JSON
 use overload '""' => sub { confess "don't stringify me bro!"; };
 
-# Persistent user agent and API info
+our(%jar,$jar);
 
 sub check {
   my ($self)=shift;
@@ -39,25 +40,17 @@ sub check {
 };
 
 sub new {
-  my ($class, $dir, $file,$jar) = ( shift, shift);
+  my ($class, $dir, $file) = ( shift, shift);
   ($class) = ( ref($class) || $class );
   die "file is required" unless defined($dir);
   die "file should be Path::Tiny"  unless blessed($dir)
     and $dir->isa('Path::Tiny');
   $dir=$dir->absolute->mkdir;
   $file=$dir->child("conv.jwrap");
-  $jar=$dir->child("cookies.txt");
-  $jar=HTTP::Cookies::Netscape->new(file=>$jar);
-  if(-e $jar->{file}){
-    $jar->load;
-  } else {
-    $jar->save;
-  };
   my $self={
     dir=>$dir,
     file => $file,
-    msgs => [ ],
-    jar => $jar,
+    msgs => [ ]
   };
   bless $self, $class;
   if (-e $file) {
@@ -79,9 +72,21 @@ sub new {
 
   return $self->check();
 }
+use Scalar::Util;
 sub jar {
   my ($self)=shift;
-  $self->{jar};
+  my ($addr) = refaddr($self);
+  local(*jar) = \$jar{$addr};
+  return $jar if defined $jar;
+  my ($dir) = $self->dir;
+  ($jar)=$dir->child("cookies.txt");
+  ($jar)=HTTP::Cookies::Netscape->new(file=>$jar);
+  if(-e $jar->{file}){
+    $jar->load;
+  } else {
+    $jar->save;
+  };
+  $jar;
 };
 sub save_jwrap {
   my ($self,$file) = @_;
@@ -182,9 +187,12 @@ sub dir {
 sub last {
   my ($self)=shift;
   my ($msgs)=$self->{msgs};
-  my ($mcnt)=0+@{$msgs};
-  print STDERR Dumper([$msgs, $mcnt]);
+  my ($mcnt)=$self->length;
   $msgs->[$mcnt-1];
+};
+sub length {
+  my $self=shift;
+  return 0+@{$self->{msgs}};
 };
 sub transact {
   my ($self) = @_;
@@ -212,28 +220,28 @@ sub transact {
   $req->content($json);
 
   # Store redacted request for debugging
-  my $disp = $req->as_string;
-  $disp=AI::Config->redact($disp);
-  my $uniq=serdate;
-  $self->dir->child("ex.".$uniq.".req.log")->spew($disp);
+  my $req_disp = $req->as_string;
+  $req_disp=AI::Config->redact($req_disp);
+  warn "$req_disp" if length($req_disp)<5;
+  my $uniq=$self->length;
+  $self->dir->child(sprintf("ex.%04d.req.log",$uniq))->spew($req_disp);
 
   $DB::single=1;
   # Send request
   my $ua = get_api_ua();
-  unless($ua->cookie_jar) {
-    $ua->cookie_jar($self->jar);
-  };
+  $ua->cookie_jar($self->jar);
   my $res = get_api_ua()->request($req);
-  $self->jar->save($self->jar->{file});
+  $self->jar->save;
   # Store response for debugging
-  $self->dir->child("ex.".$uniq.".res.log")->spew($res->as_string);
+  my $res_disp=$res->as_string;
+  warn "$res_disp" if length($res_disp)<5;
+  $self->dir->child(sprintf("ex.%04d.res.log",$uniq))->spew($res_disp);
 
   # Handle errors
   unless ($res->is_success) {
-    $self->jar->save;
     my $error = "API request failed: " . $res->status_line . "\n\n";
-    $error .= "Request: $disp\n\n";
-    $error .= "Response: " . $res->as_string;
+    $error .= "Request:\n$req_disp\n\n";
+    $error .= "Response:\n$res_disp\n\n";
     croak $error;
   }
 
@@ -249,7 +257,6 @@ sub transact {
     $reply = "No response content received from API. ".
     "Full response: " . $res->decoded_content
   }
-  $DB::single=1;
   # Append AI response to conv
   my $msg = AI::Msg->new({
       role => "assistant",

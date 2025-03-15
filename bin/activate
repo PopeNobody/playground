@@ -28,7 +28,7 @@ case ":$PERL5LIB:" in
   (*) export PERL5LIB="$AI_PLAYGROUND_DIR/lib${PERL5LIB:+:$PERL5LIB}";;
 esac
 # Change command prompt to indicate activation
-export PS1=$'\n'"(ai-playground) $PS1"
+export PS1=$'\n'"(ai-playground) $AI_PLAYGROUND_PS1"
 
 if (($#)); then
   # user has either screwed the pooch, or has provided us a program

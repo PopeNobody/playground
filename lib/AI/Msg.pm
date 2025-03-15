@@ -69,8 +69,7 @@ sub _detect_script_type {
   (my $text,my @text) = split(m{\n},shift); 
   ddx( { line=>$text, rest=>\@text } );
   # Default to plain text if no shebang
-  return 'text/plain' unless $text =~ /^#!(.+)$/m;
-  print STDERR $1; 
+  return 'text/plain' unless $text =~ /^#!(.+)$/;
   my $shebang = $1;
   my $ext = 'x';  # default executable extension
   

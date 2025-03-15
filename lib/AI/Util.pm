@@ -24,7 +24,7 @@ our(@EXPORT)=qw(
 
   pp ppx dd ddx ee eex
 
-  $Bin $Pre
+  $Bin $Pre $Script
 );
 
 *true=*JSON::true;
@@ -53,9 +53,11 @@ sub serdate(;$)
   return strftime("%Y%m%d-%H%M%S", gmtime($time));
 }
 sub call_loc {
-  my ( $pack, $file, $line ) = __PACKAGE__;
-  while( $pack eq __PACKAGE ) {
-    ($pack,$file,$line)=caller;
+  my ($i)=0;
+  my ( $pack, $file, $line ) = caller($i);
+  while( $pack eq __PACKAGE__) {
+
+    ($pack,$file,$line)=caller(++$i);
   };
   return $file, $line;
 };

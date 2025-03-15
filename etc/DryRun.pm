@@ -75,7 +75,7 @@ sub next() {
     'role' => 'user',
     'name' => 'nobody',
     'text' => '
-    \'s from a little book called Stranger in a Strange 
+    It\'s from a little book called Stranger in a Strange 
     Land. Water was precious on Mars as on Dune. Sharing water 
     is a ritual to the Martians, and becomes one for the 
     protagonists.
