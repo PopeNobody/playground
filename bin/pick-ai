@@ -1,0 +1,8 @@
+#!/bin/bash
+
+in="$1"
+eval set -- "\${!$1*}"
+declare -n name
+for name in "$@"; do
+  echo export ${!name}=${name} | sed "s,^${in}_,,"
+done
