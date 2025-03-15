@@ -2,7 +2,13 @@
 
 package AI::Util;
 use FindBin qw($Bin);
-use lib "$Bin/../lib";
+our($Pre);
+BEGIN {
+  for(map { "$_" } $Bin){
+    s{/(bin|sbin|t)$}{};
+    $Pre="$_";
+  };
+};
 use AI::TextProc;
 use Carp qw(confess);
 use Path::Tiny;
@@ -17,6 +23,8 @@ our(@EXPORT)=qw(
   true
 
   pp ppx dd ddx ee eex
+
+  $Bin $Pre
 );
 
 *true=*JSON::true;
