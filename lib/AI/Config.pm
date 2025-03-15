@@ -1,7 +1,5 @@
 package AI::Config;
-
-use strict;
-use warnings;
+use common::sense;
 use Exporter 'import';
 use lib 'lib';
 use AI::Util;
@@ -54,6 +52,11 @@ sub redact {
 BEGIN {
   my ($id) = map { split } qx(id -un);
   my $model = path("etc/")->child($id.".json");
+  unless(-e $model) {
+    ($model)=split("-",$ENV{API_MOD});
+    $model=path("etc/")->child($model.".json");
+  };
+  say $model;
   *config = decode_json($model->slurp);
   if(defined($ENV{API_KEY}) and defined($ENV{API_MOD})) {
     $config{model}=$ENV{API_MOD};
