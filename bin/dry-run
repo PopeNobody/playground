@@ -5,19 +5,14 @@ eval 'exec perl -x -wS $0 ${1+"$@"}'
 $|++;
 use FindBin qw($Bin);
 use Path::Tiny;
-open(STDOUT,">&STDERR");
 BEGIN {
-  for(map { "$_" } $Bin) {
-    s{/s?bin$}{};
-    $FindBin::prefix="$_";
-  };    
+  use lib "$Bin/../lib";
 };
+use AI::Util;
 BEGIN {
-  use lib $FindBin::prefix."/lib";
+  symlink("../etc/DryRun.pm","lib/DryRun.pm");
 };
 use common::sense;
-#use autodie;
-use Nobody::Util;
 use Snatcher;
 our(@VERSION) = qw( 0 1 0 );
 use AI::Conv;
@@ -25,13 +20,13 @@ use DryRun;
 sub next;
 my ($conv,$convf);
 ($convf)=(@ARGV ? shift : "dat/dry-run/conv.jwrap");
-my ($base)="dat/dry-run/conv";
 $convf=path($convf);
 $conv=AI::Conv->new(path("$convf"));
 my $i;
-my $next = serial_path($base,"1000",".jwrap");
+my ($form)="dat/dry-run/conv%04d.jwrap";
+my $next = serial_maker($form,0);
 unless(defined($next)) {
-  die "failed to find next for ($base,\"1000\",.jwrap)";
+  die "failed to find next for $next";
 };
 ddx($conv);
 $DB::single=$DB::signle=1;
