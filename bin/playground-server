@@ -32,7 +32,7 @@ $SIG{__WARN__}=sub {
 };
 # Parse command-line options
 my %options = (
-    port => $<,
+    port => 1000+$<,
     model => $ENV{API_MOD},
     debug => defined($ENV{DEBUG}) ? 1 : 0 ,
     secure_mode => defined($ENV{SECURE_MODE}) ? 1 : 0,

@@ -1,0 +1,26 @@
+[
+  {
+    "role": "system",
+    "name": "system",
+    "text": [
+      "# System Instructions",
+      "",
+      "You are an AI assistant designed for testing purposes.",
+      "Please respond to all queries with test-appropriate responses."
+    ]
+  },
+  {
+    "role": "user",
+    "name": "tester",
+    "text": [
+      "This is a test message."
+    ]
+  },
+  {
+    "role": "assistant",
+    "name": "ai",
+    "text": [
+      "I acknowledge this is a test message. This is a test response."
+    ]
+  }
+]

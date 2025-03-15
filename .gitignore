@@ -1,10 +1,7 @@
-test-gpt.jwrap
-*.log
-test-gpt.jwrap.old
-*.jwrap
-*.hide
-prompt.txt
-etc/dry-run-next
-dat
-AI
-response.txt
+.gitignore
+LICENSE
+MANIFEST
+META.yml
+Makefile.PL
+AI-Playground-*
+.build

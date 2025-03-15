@@ -880,3 +880,4 @@ sub _handle_comm_request {
 }
 
 1;
+# ABSTRACT: turns baubles into trinkets
