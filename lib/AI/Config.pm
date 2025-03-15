@@ -54,6 +54,7 @@ BEGIN {
   my $model = path("etc/")->child($id.".json");
   unless(-e $model) {
     ($model)=split("-",$ENV{API_MOD});
+    $model="gem" if $model eq "gemini";
     $model=path("etc/")->child($model.".json");
   };
   say $model;
