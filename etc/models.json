@@ -3,7 +3,7 @@
     "name" : "Google Gemini",
     "auth" : {
       "type" : "bearer",
-      "env_key" : "GEMINI_API_KEY"
+      "env_key" : "GEM_API_KEY"
     },
     "handle" : "gem",
     "url" : {
@@ -24,13 +24,13 @@
     "model" : "gpt-4o",
     "auth" : {
       "type" : "bearer",
-      "env_key" : "OPENAI_API_KEY"
+      "env_key" : "GPT_API_KEY"
     }
   },
   "grok" : {
     "auth" : {
       "type" : "bearer",
-      "env_key" : "XAI_API_KEY"
+      "env_key" : "GROK_API_KEY"
     },
     "model" : "grok-2-latest",
     "handle" : "grok",
@@ -41,10 +41,11 @@
   },
   "claude" : {
     "auth" : {
-      "type" : "x-api",
-      "env_key" : "ANTHROPIC_API_KEY"
+      "type" : "bearer",
+      "env_key" : "CLAUDE_API_KEY"
     },
-    "model" : "claude-3.5-sonnet",
+    "model" : 
+
     "handle" : "claude",
     "url" : {
       "api" : "https://api.anthropic.com/v1",
