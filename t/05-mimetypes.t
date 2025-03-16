@@ -8,12 +8,7 @@ use Path::Tiny;
 use Nobody::Util;
 use Test::More;
 use MIME::Types;
-
-# First, check if MIME::Types is available
-eval { require MIME::Types; };
-if ($@) {
-    plan skip_all => "MIME::Types module not installed. Run: cpanm MIME::Types";
-}
+use AI::Msg;
 
 # Create test directory if it doesn't exist
 my $test_dir = path("$Bin/test_data");
@@ -24,12 +19,8 @@ my $mime_types = MIME::Types->new();
 
 # Test scripts with various shebang lines
 my @test_scripts;
-eval "use AI::Msg";
-die "$@" if $@;
 # Run tests for each script
 foreach my $test (@test_scripts) {
-    print "\nTesting: $test->{name}\n";
-    $DB::single=1;
     my $msg = AI::Msg->new('user', 'testuser', $test->{script});
     ok(defined $msg, "Created message with $test->{name}");
     
@@ -52,15 +43,13 @@ foreach my $test (@test_scripts) {
 }
 
 # Additional test for scripts with comments or whitespace before shebang
-print "\nTesting edge cases:\n";
 
 my $whitespace_script = "\n\n#!/bin/bash\necho 'Shebang with leading whitespace'";
 my $whitespace_msg = AI::Msg->new('user', 'testuser', $whitespace_script);
-print $whitespace_msg->text;
 my $sh_mime = $mime_types->type(ext => 'sh');
 my $expected_sh_type = $sh_mime ? $sh_mime->type : 'application/x-sh';
 is($whitespace_msg->{type}, 'application/x-sh', 
-  "Script with leading whitespace not detected (as expected)");
+  "Script with leading whitespace detected");
 
 # Add a test for a file with a complex shebang
 my $complex_script = "#!/usr/bin/env python -m something\nprint('Complex shebang')\n";

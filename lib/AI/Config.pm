@@ -16,7 +16,6 @@ our @EXPORT_OK = qw(
   };
   sub request {
     my $self=shift;
-    $DB::single=1;
     for($self->{_cookie_jar}) {
       $_->load() if defined;
     };
@@ -45,7 +44,6 @@ sub get_api_url {
   return $config{url}{api};
 };
 sub redact {
-  eex(\@_);
   shift if($_[0]->isa(__PACKAGE__));
   @_ = grep { s{$config{api_key}}{$config{dummy}}g;1; } @_;
   local($")="";
@@ -61,7 +59,6 @@ BEGIN {
       $model="gem" if $model eq "gemini";
       $model=path("etc/")->child($model.".json");
     };
-    say $model;
     *config = decode_json($model->slurp);
     $config{model}=$ENV{API_MOD};
     $config{dummy}=$config{api_key}=$ENV{API_KEY};
@@ -77,11 +74,8 @@ BEGIN {
     warn  (
       "API_MOD and API_KEY are required for communication\n".
       "entering debgaded mode\n"
-    );
+    ) unless $ENV{API_LOCAL};
   };
 }
-BEGIN {
-  print STDERR "\n\n\n",get_api_mod",\n\n\n";
-};
 1;
 

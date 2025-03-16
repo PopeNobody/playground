@@ -1,7 +1,14 @@
-.gitignore
+.build
+AI-Playground-*
 LICENSE
 MANIFEST
 META.yml
+MYMETA.json
+MYMETA.yml
+Makefile
 Makefile.PL
-AI-Playground-*
-.build
+blib
+lib/DryRun.pm
+pm_to_blib
+t/fixtures
+t/tmp

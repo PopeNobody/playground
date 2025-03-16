@@ -19,7 +19,6 @@ use LWP::UserAgent;
 use HTTP::Cookies::Netscape;
 use AI::Config qw( get_api_key get_api_ua get_api_mod get_api_url);
 use Scalar::Util qw(refaddr);
-# Add overloading for stringification to JSON
 use overload '""' => sub { confess "don't stringify me bro!"; };
 
 our(%jar,$jar);
@@ -54,10 +53,14 @@ sub new {
   };
   bless $self, $class;
   if (-e $file) {
-    say STDERR "Loading AI::Conv from $file";
+    say STDERR ( 
+      "Loading AI::Conv from $file"
+    ) unless defined $ENV{API_QUIET};
     $self->load_jwrap();
   } else {
-    say STDERR "File $file does not exist, creating new conversation.";
+    say STDERR (
+      "File $file does not exist, creating new conversation."
+    ) unless defined $ENV{API_QUIET};;
     my $path=path("etc/system-message.md");
     dbg( { path=>$path } );
     my $msg = AI::Msg->new({
@@ -196,7 +199,6 @@ sub length {
 };
 sub transact {
   my ($self) = @_;
-  say STDERR ("self->".ref($self));
   croak "conv object required" unless blessed($self) && $self->isa('AI::Conv');
 
   # Prepare HTTP request
@@ -226,9 +228,13 @@ sub transact {
   my $uniq=$self->length;
   $self->dir->child(sprintf("ex.%04d.req.log",$uniq))->spew($req_disp);
 
-  $DB::single=1;
   # Send request
   my $ua = get_api_ua();
+
+
+  confess "in degraded mode -- cannot call out " unless defined($ua);
+
+
   $ua->cookie_jar($self->jar);
   my $res = get_api_ua()->request($req);
   $self->jar->save;
