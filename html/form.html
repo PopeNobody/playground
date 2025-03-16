@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Playground - <TMPL_VAR NAME="instance_id"></title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        textarea { width: 100%; font-family: monospace; }
+        .output { border: 1px solid #ccc; padding: 10px; margin-top: 10px; background: #f5f5f5; }
+        pre { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>AI Playground - <TMPL_VAR NAME="instance_id"></h1>
+    <p>Connected to <TMPL_VAR NAME="model"> via <TMPL_VAR NAME="api_url"></p>
+    <form method="post" action="/submit">
+        <h2>Input:</h2>
+        <textarea id="editField" name="editField" rows="15" cols="80" placeholder="Enter your prompt or script here..."><TMPL_VAR NAME="edit_field_value"></textarea>
+        <br>
+        <input type="submit" value="Submit to AI">
+    </form>
+    <div id="output" class="output">
+        <h2>Response:</h2>
+        <div id="response"><TMPL_VAR NAME="response_html"></div>
+    </div>
+    <p><a href="/instances">View AI Instances Communication</a></p>
+</body>
+</html>
