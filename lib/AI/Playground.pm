@@ -423,290 +423,181 @@ sub forward_to_ai {
 # Private methods for handling HTTP requests
 
 sub _generate_form_html {
-  my ($self) = @_;
+    my ($self) = @_;
 
-  my $api_info = $self->{api_info};
-  return q{
-  <!DOCTYPE html>
-  <html>
-  <head>
-  <title>AI Playground - } . $self->{instance_id} . q{</title>
-  <style>
-  body { font-family: Arial, sans-serif; margin: 20px; }
-  textarea { width: 100%; font-family: monospace; }
-  .output { border: 1px solid #ccc; padding: 10px; margin-top: 10px; background: #f5f5f5; }
-  pre { white-space: pre-wrap; }
-  </style>
-  </head>
-  <body>
-  <h1>AI Playground - } . $self->{instance_id} . q{</h1>
-  <p>Connected to } . $self->{model} . q{ via } . $api_info->{url}->{api} . q{</p>
-  <form method="post" action="/submit">
-  <h2>Input:</h2>
-  <textarea id="editField" name="editField" rows="15" cols="80" placeholder="Enter your prompt or script here..."></textarea>
-  <br>
-  <input type="submit" value="Submit to AI">
-  </form>
-  <div id="output" class="output">
-  <h2>Response:</h2>
-  <div id="response"></div>
-  </div>
-  <p><a href="/instances">View AI Instances Communication</a></p>
-  </body>
-  </html>
-  };
+    my $template_dir = path(".")->child('html');
+    my $template = HTML::Template->new(
+        filename => $template_dir->child('form.html')
+    );
+
+    my $api_info = $self->{api_info};
+    $template->param(
+        instance_id       => $self->{instance_id},
+        model           => $self->{model},
+        api_url         => get_api_url(),    # Assuming get_api_url is still available
+        response_html   => '',
+        edit_field_value => '',
+    );
+
+    return $template->output();
 }
+
+use HTML::Template;
 
 sub _generate_instances_html {
-  my ($self) = @_;
+    my ($self) = @_;
 
-  # Get a list of all instances
-  my @instances;
-  for my $socket_file (path("ai_sockets")->children) {
-    next unless $socket_file =~ /\.sock$/;
-    my $id = $socket_file->basename;
-    $id =~ s/\.sock$//;
+    my $template_dir = path(".")->child('html');
+    my $template = HTML::Template->new(
+        filename => $template_dir->child('instances.html')
+    );
 
-    push @instances, {
-      id => $id,
-      is_self => ($id eq $self->{instance_id}),
-      socket => $socket_file->stringify
-    };
-  }
+    # Get a list of all instances
+    my @instances;
+    my @other_instances;
+    for my $socket_file (path("ai_sockets")->children) {
+        next unless $socket_file =~ /\.sock$/;
+        my $id = $socket_file->basename;
+        $id =~ s/\.sock$//;
 
-  my $instances_html = q{
-  <!DOCTYPE html>
-  <html>
-  <head>
-  <title>AI Playground - Instance Communication</title>
-  <style>
-  body { font-family: Arial, sans-serif; margin: 20px; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-  th { background-color: #f2f2f2; }
-  .self { background-color: #e6f7ff; }
-  .controls { margin: 20px 0; }
-  </style>
-  <script>
-  function sendMessage() {
-  const target = document.getElementById('targetInstance').value;
-  const messageType = document.getElementById('messageType').value;
-  const messageContent = document.getElementById('messageContent').value;
+        my $instance = {
+            id      => $id,
+            is_self => ($id eq $self->{instance_id}),
+            socket  => $socket_file->stringify
+        };
+        push @instances, $instance;
+        push @other_instances, $instance unless $instance->{is_self};
+    }
 
-  fetch('/comm', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-  action: 'send',
-  target: target,
-  message: {
-  type: messageType,
-  content: messageContent
-  }
-  })
-  })
-  .then(response => response.json())
-  .then(data => {
-  alert(data.success ? 'Message sent successfully' : 'Failed to send message');
-  });
-  }
+    $template->param(
+        instance_id     => $self->{instance_id},
+        instance_type   => $self->{instance_type},    # Assuming instance_type is available
+        instances       => \@instances,
+        other_instances => \@other_instances,
+    );
 
-  function broadcastMessage() {
-  const messageType = document.getElementById('broadcastType').value;
-  const messageContent = document.getElementById('broadcastContent').value;
-
-  fetch('/comm', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-  action: 'broadcast',
-  message: {
-  type: messageType,
-  content: messageContent
-  }
-  })
-  })
-  .then(response => response.json())
-  .then(data => {
-  alert('Broadcast sent to ' + data.results.length + ' instances');
-  });
-  }
-
-  function forwardPrompt() {
-  const target = document.getElementById('forwardTarget').value;
-  const prompt = document.getElementById('forwardPrompt').value;
-
-  fetch('/forward', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-  target: target,
-  prompt: prompt
-  })
-  })
-  .then(response => response.json())
-  .then(data => {
-  if (data.error) {
-  alert('Error: ' + data.error);
-  } else {
-  document.getElementById('forwardResult').textContent = data.response || "No response";
-  document.getElementById('forwardResultSection').style.display = 'block';
-  }
-  });
-  }
-  </script>
-  </head>
-  <body>
-  <h1>AI Playground - Instance Communication</h1>
-  <p>Current instance: <strong>} . $self->{instance_id} . q{</strong> (Type: } . $self->{instance_type} . q{)</p>
-
-  <h2>Active Instances</h2>
-  <table>
-  <tr>
-  <th>Instance ID</th>
-  <th>Status</th>
-  <th>Socket Path</th>
-  </tr>
-  };
-
-  foreach my $instance (@instances) {
-  $instances_html .= "<tr" . ($instance->{is_self} ? " class='self'" : "") . ">";
-  $instances_html .= "<td>" . $instance->{id} . "</td>";
-  $instances_html .= "<td>" . ($instance->{is_self} ? "Self" : "Active") . "</td>";
-  $instances_html .= "<td>" . $instance->{socket} . "</td>";
-  $instances_html .= "</tr>";
-  }
-
-  $instances_html .= q{
-  </table>
-
-  <div class="controls">
-  <h2>Send Message to Specific Instance</h2>
-  <div>
-  <label for="targetInstance">Target Instance:</label>
-  <select id="targetInstance">
-};
-
-foreach my $instance (@instances) {
-  next if $instance->{is_self};
-  $instances_html .= "<option value='" . $instance->{id} . "'>" . $instance->{id} . "</option>";
+    return $template->output();
 }
-
-$instances_html .= q{
-</select>
-</div>
-<div>
-<label for="messageType">Message Type:</label>
-<input type="text" id="messageType" value="query" />
-</div>
-<div>
-<label for="messageContent">Message Content:</label>
-<input type="text" id="messageContent" size="50" />
-</div>
-<button onclick="sendMessage()">Send Message</button>
-</div>
-
-<div class="controls">
-<h2>Forward Prompt to Another AI</h2>
-<div>
-<label for="forwardTarget">Target AI:</label>
-<select id="forwardTarget">
-};
-
-foreach my $instance (@instances) {
-  next if $instance->{is_self};
-  $instances_html .= "<option value='" . $instance->{id} . "'>" . $instance->{id} . "</option>";
-}
-
-$instances_html .= q{
-</select>
-</div>
-<div>
-<label for="forwardPrompt">Prompt:</label>
-<textarea id="forwardPrompt" rows="3" cols="50"></textarea>
-</div>
-<button onclick="forwardPrompt()">Forward Prompt</button>
-<div id="forwardResultSection" style="display: none; margin-top: 10px; padding: 10px; border: 1px solid #ccc;">
-<h3>Response:</h3>
-<pre id="forwardResult"></pre>
-</div>
-</div>
-
-<div class="controls">
-<h2>Broadcast Message to All Instances</h2>
-<div>
-<label for="broadcastType">Message Type:</label>
-<input type="text" id="broadcastType" value="notification" />
-</div>
-<div>
-<label for="broadcastContent">Message Content:</label>
-<input type="text" id="broadcastContent" size="50" />
-</div>
-<button onclick="broadcastMessage()">Broadcast Message</button>
-</div>
-
-<p><a href="/">Back to Main Interface</a></p>
-</body>
-</html>
-};
-
-return $instances_html;
-}
+use HTML::Template;
 
 sub _handle_form_submission {
-  my ($self, $req) = @_;
+    my ($self, $req) = @_;
 
-  say STDERR "submission";
-  my $input = $req->parm('editField');
+    say STDERR "submission";
+    my $input = $req->parm('editField');
 
-  unless (defined $input && $input =~ /\S/) {
-    $req->respond({ content => ['text/html', "No input received"] });
-    return;
-  }
+    unless (defined $input && $input =~ /\S/) {
+        $req->respond({ content => ['text/html', "No input received"] });
+        return;
+    }
 
-  # Look for shebang scripts
-  my @scripts = $self->extract_scripts($input);
-  my $response_html = "";
+    # Look for shebang scripts
+    my @scripts = $self->extract_scripts($input);
+    my $response_html = "";
 
-  # First, process through AI if not already containing scripts
-  if (!@scripts) {
-    my $ai_response = $self->process_ai_request($input);
-    $response_html .= "<h3>AI Response (Model: $self->{model}):</h3>\n<pre>$ai_response</pre>\n";
+    # First, process through AI if not already containing scripts
+    if (!@scripts) {
+        my $ai_response = $self->process_ai_request($input);
+        $response_html .= "<h3>AI Response (Model: $self->{model}):</h3>\n<pre>$ai_response</pre>\n";
 
-    # Check if AI response contains scripts
-    @scripts = $self->extract_scripts($ai_response);
+        # Check if AI response contains scripts
+        @scripts = $self->extract_scripts($ai_response);
+        if (@scripts) {
+            $response_html .= "<h3>Found scripts in AI response:</h3>\n";
+        }
+    }
+
+    # Execute any scripts found
     if (@scripts) {
-      $response_html .= "<h3>Found scripts in AI response:</h3>\n";
+        $response_html .= "<h3>Script Execution:</h3>\n";
+        foreach my $script (@scripts) {
+            my $result = $self->execute_script($script, $self->{instance_id});
+            $response_html .= "<h4>Script executed with exit code " . $result->{exit_code} . "</h4>\n";
+            $response_html .= "<pre>" . ($result->{output} || "No output") . "</pre>\n";
+
+            # If this was from AI response, send the execution results back to AI
+            if (!$self->extract_scripts($input)) {
+                my $execution_feedback = "I executed your script and got the following output:\n\n```\n" .
+                  ($result->{output} || "No output") .
+                  "\n```\n\nExit code: " . $result->{exit_code};
+
+                my $ai_feedback = $self->process_ai_request($execution_feedback, $self->{model});
+                $response_html .= "<h3>AI Feedback on Execution:</h3>\n<pre>$ai_feedback</pre>\n";
+            }
+        }
     }
-  }
 
-  # Execute any scripts found
-  if (@scripts) {
-    $response_html .= "<h3>Script Execution:</h3>\n";
-    foreach my $script (@scripts) {
-      my $result = $self->execute_script($script, $self->{instance_id});
-      $response_html .= "<h4>Script executed with exit code " . $result->{exit_code} . "</h4>\n";
-      $response_html .= "<pre>" . ($result->{output} || "No output") . "</pre>\n";
+    # Update the form with the response and return it
+    my $template_dir = path(".")->child('html');
+    my $template = HTML::Template->new(
+        filename => $template_dir->child('form.html')
+    );
+    my $api_info = $self->{api_info};
+    $template->param(
+        instance_id       => $self->{instance_id},
+        model           => $self->{model},
+        api_url         => get_api_url(),    # Assuming get_api_url is still available
+        response_html   => $response_html,
+        edit_field_value => $input,
+    );
+    my $response_page = $template->output();
 
-      # If this was from AI response, send the execution results back to AI
-      if (!$self->extract_scripts($input)) {
-        my $execution_feedback = "I executed your script and got the following output:\n\n```\n" . 
-        ($result->{output} || "No output") . 
-        "\n```\n\nExit code: " . $result->{exit_code};
-
-        my $ai_feedback = $self->process_ai_request($execution_feedback, $self->{model});
-        $response_html .= "<h3>AI Feedback on Execution:</h3>\n<pre>$ai_feedback</pre>\n";
-      }
-    }
-  }
-
-  # Update the form with the response and return it
-  my $response_page = $self->_generate_form_html();
-  $response_page =~ s/<div id="response"><\/div>/<div id="response">$response_html<\/div>/;
-  $response_page =~ s/<textarea id="editField"[^>]*>.*?<\/textarea>/<textarea id="editField" name="editField" rows="15" cols="80">$input<\/textarea>/s;
-
-  $req->respond({ content => ['text/html', $response_page] });
+    $req->respond({ content => ['text/html', $response_page] });
 }
+#    sub _handle_form_submission {
+#      my ($self, $req) = @_;
+#    
+#      say STDERR "submission";
+#      my $input = $req->parm('editField');
+#    
+#      unless (defined $input && $input =~ /\S/) {
+#        $req->respond({ content => ['text/plain', "No input received"] });
+#        return;
+#      }
+#    
+#      # Look for shebang scripts
+#      my @scripts = $self->extract_scripts($input);
+#      my $response_html = "";
+#    
+#      # First, process through AI if not already containing scripts
+#      if (!@scripts) {
+#        my $ai_response = $self->process_ai_request($input);
+#        $response_html .= "<h3>AI Response (Model: $self->{model}):</h3>\n<pre>$ai_response</pre>\n";
+#    
+#        # Check if AI response contains scripts
+#        @scripts = $self->extract_scripts($ai_response);
+#        if (@scripts) {
+#          $response_html .= "<h3>Found scripts in AI response:</h3>\n";
+#        }
+#      }
+#    
+#      # Execute any scripts found
+#      if (@scripts) {
+#        $response_html .= "<h3>Script Execution:</h3>\n";
+#        foreach my $script (@scripts) {
+#          my $result = $self->execute_script($script, $self->{instance_id});
+#          $response_html .= "<h4>Script executed with exit code " . $result->{exit_code} . "</h4>\n";
+#          $response_html .= "<pre>" . ($result->{output} || "No output") . "</pre>\n";
+#    
+#          # If this was from AI response, send the execution results back to AI
+#          if (!$self->extract_scripts($input)) {
+#            my $execution_feedback = "I executed your script and got the following output:\n\n```\n" . 
+#            ($result->{output} || "No output") . 
+#            "\n```\n\nExit code: " . $result->{exit_code};
+#    
+#            my $ai_feedback = $self->process_ai_request($execution_feedback, $self->{model});
+#            $response_html .= "<h3>AI Feedback on Execution:</h3>\n<pre>$ai_feedback</pre>\n";
+#          }
+#        }
+#      }
+#    
+#      # Update the form with the response and return it
+#      my $response_page = $self->_generate_form_html();
+#      $response_page =~ s/<div id="response"><\/div>/<div id="response">$response_html<\/div>/;
+#      $response_page =~ s/<textarea id="editField"[^>]*>.*?<\/textarea>/<textarea id="editField" name="editField" rows="15" cols="80">$input<\/textarea>/s;
+#    
+#      $req->respond({ content => ['text/html', $response_page] });
+#    }
 
 sub _handle_forward_request {
   my ($self, $req) = @_;
