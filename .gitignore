@@ -12,3 +12,8 @@ lib/DryRun.pm
 pm_to_blib
 t/fixtures
 t/tmp
+AI-Playground*
+dat
+data
+log
+
