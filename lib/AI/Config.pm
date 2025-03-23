@@ -70,6 +70,7 @@ BEGIN {
     $config{ua}=AI::UserAgent->new();
     $config{ua}->default_header('Authorization' => "Bearer ".get_api_key() );
     $config{ua}->default_header('Content-Type' => 'application/json');
+    $config{ua}->default_header('user-agent' => 'curl/7.88.1');
   } else {
     warn  (
       "API_MOD and API_KEY are required for communication\n".

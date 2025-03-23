@@ -17,6 +17,7 @@ BEGIN {
 };
 use common::sense;
 use AI::Util;
+use AI::UI;
 use autodie;
 use Snatcher;
 our(@VERSION) = qw( 0 1 0 );
@@ -50,10 +51,9 @@ sub help {
 sub version {
   say "@VERSION";
 };
-my $conv_dir;
 while(($_=shift)ne'--'){
   if( $_ eq '-c') {
-    $conv_dir=path(shift);
+    $conv=path(shift);
   } elsif( $_ eq '-f') {
     $prompt_file=path(shift);
   } elsif ( $_ eq '-d' ) {
@@ -67,95 +67,17 @@ while(($_=shift)ne'--'){
     die "bad arg: $_";
   };
 };
-sub edit($) {
-  my ($file)=shift;
-  ddx({file=>$file});
-  system("exec >/dev/tty </dev/tty 2>&1; gvim -f  $file");
-  die "editor returned error" if $?;
-};
-my ($conv_file)=path("etc/convs.lst")->touch;
-my (@convs) = grep { -d } split(m{\n},$conv_file->slurp);
-if(defined($conv_dir)){
-  unshift(@convs,$conv_dir);
-  $conv_dir->mkdir;
-} elsif ( @convs ) {
-  $conv_dir=path($convs[0]);
-} else {
-  my ($maker)=serial_maker("dat/test-gpt-%04d",9999,1);
-  $conv_dir = path($maker->()->{fn});
-};
-unless($convs[0] eq $conv_dir){
-  $conv_file->spew($conv_dir);
-};
+ddx([$conv]);
+$conv=>set_conv($conv);
+ddx([$conv]);
 
-my $prompt_file = $conv_dir->child("prompt.txt");
-my $conv = AI::Conv->new($conv_dir);
-path("etc")->child("test-ai.conv")->spew("$conv_dir");
-
-sub transact {
-  my $res;
-  if($mock){
-    my ($res_file) = $conv->dir->child("response.txt");
-    $res_file->spew("Edit this file into the mock respons")
-      unless -e $res_file;
-    edit($res_file);
-    $res = $res_file->slurp;
-    eex($res);
-    sleep(5);
-    $res = AI::Msg->new("assistant",get_api_mod."(mock)",$res);
-    eex($res);
-    sleep(5);
-    $conv->add($res);
-    eex($res);
-  }else{
-    if($conv->last->{role} ne "user") {
-      $prompt_file=path($prompt_file) unless ref $prompt_file;
-      if($edit) {
-        edit($prompt_file);
-      }
-      $text=$prompt_file->slurp;
-      $conv->add(AI::Msg->new("user","nobody",$text));
-    };
-    $res = $conv->transact();
-  };
-  return $res;
-}
 my $res;
 do {
   $res = transact();
   if($res->{type} eq "text/plain"){
-    if($edit) {
-      edit($conv->file);
-    } else {
-      say $conv->file->slurp;
-    };
+    may_edit($conv);
   } else {
-    my ($script)=$conv_dir->child(
-      sprintf("ex.%04d.script",$conv->length));
-    eex($res);
-    eex($script);
-    my $text=$res->{text};
-    for($text){
-      eex({text=>$_});
-      unless(m{^#!/}) {
-        s{^#!}{#!/usr/bin/env };
-      };
-      eex({text=>$_});
-    };
-    $script->spew($text);
-    $script->chmod(0755);
-    my ($capture)=$conv_dir->child(
-          sprintf("ex.%04d.capture.log",$conv->length));
-    unless($script->is_absolute){
-      $script="./$script";
-    };
-    system("bin/capture -f $capture perl $script");
-    if($edit) {
-      edit($capture);  
-    };
-    my ($msg) = AI::Msg->new("system","output",$capture->slurp);
-    $conv->add($msg);
-    $res=transact();
-  };
+    run_script($conv);
+  }
 } while $res->{type} ne "text/plain";
 

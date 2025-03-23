@@ -2,6 +2,7 @@
 
 package AI::Util;
 use FindBin qw($Bin);
+use lib "lib";
 our($Pre);
 BEGIN {
   for(map { "$_" } $Bin){
