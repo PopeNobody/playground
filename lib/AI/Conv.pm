@@ -37,11 +37,37 @@ sub check {
   };
   return $self;
 };
-
+sub good_path {
+  if(ref($_[0]) && $_[0]->isa(__PACKAGE__)){
+    shift;
+  } elsif ($_[0] eq __PACKAGE__) {
+    shift;
+  }; 
+  die "no path passed" unless @_;
+  my $conv=shift;
+  if(-d $conv) {
+    say "$conv is a dir";
+    return 1;
+  } elsif ( -f $conv ) {
+    say "$conv is a file";
+    die "$conv does not end in jwrap" unless $conv =~ m{[.]jwrap$};
+    return 1;
+  } elsif ( -e $conv ) {
+    die "$conv is a wombat: ", qx(system ls -l $conv);
+  };
+};
+our(%xlate);
+BEGIN {
+  $xlate{"req"}=["msg.req","msg.res"];
+  $xlate{"script"}=["script.cap","script.log"];
+  $xlate{"sys"}=["sys.txt",""];
+  $xlate{"prompt"}=["prompt.txt",""];
+};
 sub new {
   my ($class, $dir, $file) = ( shift, shift);
   ($class) = ( ref($class) || $class );
   die "file is required" unless defined($dir);
+  good_path($dir);
   die "file should be Path::Tiny"  unless blessed($dir)
     and $dir->isa('Path::Tiny');
   $dir=$dir->absolute->mkdir;
@@ -49,7 +75,9 @@ sub new {
   my $self={
     dir=>$dir,
     file => $file,
-    msgs => [ ]
+    msgs => [ ],
+    pend => undef,
+    sent => undef,
   };
   bless $self, $class;
   if (-e $file) {
@@ -75,6 +103,20 @@ sub new {
 
   return $self->check();
 }
+sub pair_name {
+  my ($self)=shift;
+  my ($type)=shift;
+  my ($suf_pair)=$xlate{$type};
+  die "no pair for type: $type" unless defined $suf_pair;
+  unless(ref($suf_pair)eq'ARRAY' and 2==@$suf_pair ) {
+    die "$suf_pair should be array of two"
+  };
+  $suf_pair=[ map { "$_" } @$suf_pair ];
+  for(@$suf_pair) {
+    $_=sprintf("msg.%04d.$_",(int($self->length/2)*2)) if(length);
+  };
+  return $suf_pair;
+};
 use Scalar::Util;
 sub jar {
   my ($self)=shift;
@@ -225,10 +267,8 @@ sub transact {
   my $req_disp = $req->as_string;
   $req_disp=AI::Config->redact($req_disp);
   warn "$req_disp" if length($req_disp)<5;
-  my $uniq=$self->length;
-  $self->dir->child(sprintf("ex.%04d.req.log",$uniq))->spew($req_disp);
-
-  # Send request
+  my $pair = $self->pair_name("req"); 
+  path($pair->[0])->spew($req_disp);
   my $ua = get_api_ua();
 
 
@@ -241,7 +281,7 @@ sub transact {
   # Store response for debugging
   my $res_disp=$res->as_string;
   warn "$res_disp" if length($res_disp)<5;
-  $self->dir->child(sprintf("ex.%04d.res.log",$uniq))->spew($res_disp);
+  path($pair->[1])->spew($res_disp);
 
   # Handle errors
   unless ($res->is_success) {

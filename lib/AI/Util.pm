@@ -2,6 +2,7 @@
 
 package AI::Util;
 use FindBin qw($Bin);
+use lib "lib";
 our($Pre);
 BEGIN {
   for(map { "$_" } $Bin){
@@ -77,17 +78,21 @@ sub eex {
   print STDERR ppx(@_);
 };
 
-sub serial_maker($$;$) {
-  my ($fmt)=shift;
-  my ($max)=shift;
-  my ($dir)=map { !!$_ } shift;
-  my ($num)=0;
+sub serial_maker(%) {
+  my (%arg)=%{$_[0]};
+  ddx(\%arg);
+  my ($fmt)=$arg{fmt}//die "format is required";
+  my ($max)=$arg{max}//1000;
+  my ($min)=$arg{min}//0;
+  my ($dir)=!!$arg{dir};
+  my ($num)=$min;
   return sub {
     local($_);
     my (%res)=( fh=>undef, fn=>undef );
     for(;;){
-      return undef if($num>$max);
-      ($res{fn}=path(sprintf($fmt,$num)))->parent->mkdir;
+      return undef if($num>=$max);
+      ($res{fn}=path(sprintf($fmt,$num)));
+      $res{fn}->parent->mkdir;
       no autodie qw(sysopen mkdir);
       if($dir) {
         if(mkdir($res{fn})){
