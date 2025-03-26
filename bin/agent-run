@@ -2,138 +2,98 @@
 # vim: ts=2 sw=2 ft=perl
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
+our(@VERSION) = qw( 0 1 0 );
+$|++;
+use AnyEvent;
+my ($agent)=Agent->new();
+Agent->note("calling recv, then will exit");
+$agent->{covar}->recv;
+exit(0);
 package Agent;
 use common::sense;
 use FindLib qw(AI::Util);
+use Carp qw(verbose);
 use autodie;
 use AI::Config qw(get_api_mod get_api_ua);
 use AI::Conv;
-use AI::Util;
-open(STDOUT,"|cat -E");
-open(STDERR,">&STDOUT");
-$|++;
-use vars qw( $type $port $host %attr $httpd );
-our(@VERSION) = qw( 0 1 0 );
-use AnyEvent::HTTPD;
-package Announcer::Req;
-use AI::Util;
-use base qw(AnyEvent::HTTPD::Request);
-sub new {
-  my ($class)=shift;
-  my $self = $class->SUPER::new(@_);
-  $self;
-};
-package Announcer::Con;
-use AI::Util;
-use base qw(AnyEvent::HTTPD::HTTPConnection);
-sub new {
-  my ($class)=shift;
-  my $self = $class->SUPER::new(@_);
-  $self;
-};
-package Agent;
 use AI::UI;
-use Getopt::WonderBra;
-sub main::help {
-  say "usage: $0 [ -c conv ]";
+use AI::Util;
+use AnyEvent::Socket;
+use AnyEvent::Handle;
+use AnyEvent::Log;
+use AnyEvent;
+use AE;
+sub note {
+  say STDERR "note: => ", pp(\@_);
 };
-sub main::version {
-  say "@VERSION";
-};
-my $conv;
-@ARGV = main::getopt( "c:", @ARGV );
-while(($_=shift)ne'--'){
-  if(m/^-c$/) {
-    $conv=shift;
-  } else {
-    die "unexpected arg: $_";
+sub new() {
+  my ($class,%self)=@_;
+  my ($self)=\%self;
+  note info=> "created new instance";
+  $self{timer} = AnyEvent->timer(
+    after=>15-time%15,
+    interval=>15, cb=>sub { note(serdate); });
+  $self{covar} //= AE::cv;
+  $self{model} //= get_api_mod;
+  $self{agent} //= do {
+    my $agent=get_api_ua;
+    die "Session not configured" unless defined($agent);
+    $agent
   };
-};
-die "Session not configured" unless defined(get_api_ua);
-$conv = set_conv($conv);
-my ($model)=AI::Config::get_api_mod;
-my ($agent)=Agent->new(model=>$model);
-sub new {
-  my ($class,@args)=@_;
-  my ($self)={ @args };
-  
-  unless(defined($host)){
-    my ($host)="localhost";
-  }; 
-  unless(defined(${type})){
-    my ($type) = $self->{model};
-    for($type) {
-      s{-.*}{};
-      s{^gemini}{gem};
-    };
-    $self->{type}=$type;
+  ($self{port}) //= do {
+    local(@_) = map { split } qx( id -u );
+    ddx( "id returned: @_" );
+    shift;
   };
-  unless(defined($self->{port})) {
-    my ($port)=map { split } qx( id -u $type );
-    $self->{port}=$port;
+  $self{port}+=1000 while $self{port}<4000;
+  note "creating  tcp server\n";
+  ddx ($self{serv});
+  $self{serv} //= tcp_server $self{host}, $self{port}, sub {
+    my ($fh, $host, $port) = @_;
+    ddx( "entering sub: ($fh,$host,$port)\n" );
+    ddx( fd => fileno($fh) );
+    syswrite($fh,"This is a test, this is only a test!\n\n");
+    ddx( fh=>$fh );
+    my $hand;
+    my $num;
+    my $toggle;
+    $hand = new AnyEvent::Handle (
+      fh=>$fh,
+      on_read => sub {
+        local(@_)=@_;
+        note( {on_read=>\@_} );
+        my $rbuf=$hand->{rbuf};
+        note( {length=>length($rbuf) });
+        my $part=substr($hand->rbuf,0,length($hand->{rbuf}),"");
+        note( {part=>length($part), rbuf=>length($hand->{rbuf}) } );
+      },
+      on_error => sub {
+        local(@_)=@_;
+        note( {on_error=>\@_} );
+      },
+      on_eof => sub {
+        local(@_)=@_;
+        note( {on_eof=>\@_} );
+      },
+      on_rtimeout => sub {
+        local(@_)=@_;
+        note( {on_eof=>\@_} );
+      },
+      on_wtimeout => sub {
+        local(@_)=@_;
+        note( {on_eof=>\@_} );
+      },
+      on_timeout => sub {
+        local(@_)=@_;
+        note( {on_eof=>\@_} );
+      },
+      read_size => 1024*1024,
+    );
   };
-  $httpd = AnyEvent::HTTPD->new(
-    host => $self->{host},
-    port => $self->{port},
-    allowed_methods => [ qw( GET POST PUT HEAD ) ],
-  );
+
+
   bless($self,$class);
-  $self->{httpd} = $httpd;
-  $httpd->{connection_class}='Announcer::Con';
-  $httpd->{request_class}='Announcer::Req';
-  $self->{httpd}->reg_cb(
-    '/' => sub {
-      my ($httpd, $req) = @_;
-      my ($method)=$req->{method};
-      if($method eq 'GET'){
-        $req->respond(
-          {
-            code=>200,
-            content=>[
-              'text/plain',
-              'send a prompt!'
-            ]
-          }
-        );
-      } elsif( $method eq 'POST' ) {
-        my $content=$req->content;
-        $req->respond({
-            code => 200,
-            content => ['application/json',
-              '{"content":"'."$content".'"}']
-          }
-        );
-      } elsif( $method eq 'PUT' ) {
-        my $content=$req->content;
-        $req->respond({
-            code => 200,
-            content => ['application/json',
-              '{"content":"'."$content".'"}']
-          }
-        );
-      } else {
-        $req->respond({
-            code=>403,
-            content=>['application/json',
-              encode_json(
-                {
-                  code=>403,
-                  msg=>'bad method',
-                  detail=>'cannot handle method: '.$method
-                }
-              ),]
-          }
-        );
-      };
-    },
-  );
-  say STDERR "attach on ", $self->url;
-  $self;
-}
-AE::cv->recv;
-exit(0);
-
-
+};
 sub url() {
   my ($self)=shift;
   my ($httpd)=$self->{httpd};
