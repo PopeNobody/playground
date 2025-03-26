@@ -1,0 +1,141 @@
+#!/usr/bin/perl
+# vim: ts=2 sw=2 ft=perl
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+  if 0;
+package Agent;
+use common::sense;
+use FindLib qw(AI::Util);
+use autodie;
+use AI::Config qw(get_api_mod get_api_ua);
+use AI::Conv;
+use AI::Util;
+open(STDOUT,"|cat -E");
+open(STDERR,">&STDOUT");
+$|++;
+use vars qw( $type $port $host %attr $httpd );
+our(@VERSION) = qw( 0 1 0 );
+use AnyEvent::HTTPD;
+package Announcer::Req;
+use AI::Util;
+use base qw(AnyEvent::HTTPD::Request);
+sub new {
+  my ($class)=shift;
+  my $self = $class->SUPER::new(@_);
+  $self;
+};
+package Announcer::Con;
+use AI::Util;
+use base qw(AnyEvent::HTTPD::HTTPConnection);
+sub new {
+  my ($class)=shift;
+  my $self = $class->SUPER::new(@_);
+  $self;
+};
+package Agent;
+use AI::UI;
+use Getopt::WonderBra;
+sub main::help {
+  say "usage: $0 [ -c conv ]";
+};
+sub main::version {
+  say "@VERSION";
+};
+my $conv;
+@ARGV = main::getopt( "c:", @ARGV );
+while(($_=shift)ne'--'){
+  if(m/^-c$/) {
+    $conv=shift;
+  } else {
+    die "unexpected arg: $_";
+  };
+};
+die "Session not configured" unless defined(get_api_ua);
+$conv = set_conv($conv);
+my ($model)=AI::Config::get_api_mod;
+my ($agent)=Agent->new(model=>$model);
+sub new {
+  my ($class,@args)=@_;
+  my ($self)={ @args };
+  
+  unless(defined($host)){
+    my ($host)="localhost";
+  }; 
+  unless(defined(${type})){
+    my ($type) = $self->{model};
+    for($type) {
+      s{-.*}{};
+      s{^gemini}{gem};
+    };
+    $self->{type}=$type;
+  };
+  unless(defined($self->{port})) {
+    my ($port)=map { split } qx( id -u $type );
+    $self->{port}=$port;
+  };
+  $httpd = AnyEvent::HTTPD->new(
+    host => $self->{host},
+    port => $self->{port},
+    allowed_methods => [ qw( GET POST PUT HEAD ) ],
+  );
+  bless($self,$class);
+  $self->{httpd} = $httpd;
+  $httpd->{connection_class}='Announcer::Con';
+  $httpd->{request_class}='Announcer::Req';
+  $self->{httpd}->reg_cb(
+    '/' => sub {
+      my ($httpd, $req) = @_;
+      my ($method)=$req->{method};
+      if($method eq 'GET'){
+        $req->respond(
+          {
+            code=>200,
+            content=>[
+              'text/plain',
+              'send a prompt!'
+            ]
+          }
+        );
+      } elsif( $method eq 'POST' ) {
+        my $content=$req->content;
+        $req->respond({
+            code => 200,
+            content => ['application/json',
+              '{"content":"'."$content".'"}']
+          }
+        );
+      } elsif( $method eq 'PUT' ) {
+        my $content=$req->content;
+        $req->respond({
+            code => 200,
+            content => ['application/json',
+              '{"content":"'."$content".'"}']
+          }
+        );
+      } else {
+        $req->respond({
+            code=>403,
+            content=>['application/json',
+              encode_json(
+                {
+                  code=>403,
+                  msg=>'bad method',
+                  detail=>'cannot handle method: '.$method
+                }
+              ),]
+          }
+        );
+      };
+    },
+  );
+  say STDERR "attach on ", $self->url;
+  $self;
+}
+AE::cv->recv;
+exit(0);
+
+
+sub url() {
+  my ($self)=shift;
+  my ($httpd)=$self->{httpd};
+  "http://".($httpd->host).":".($httpd->port)."/";
+};

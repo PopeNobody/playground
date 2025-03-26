@@ -16,5 +16,6 @@ AI-Playground*
 dat
 data
 log
-
 etc/model.json
+model.json
+lib/LWP

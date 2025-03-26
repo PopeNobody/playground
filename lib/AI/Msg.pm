@@ -175,6 +175,10 @@ sub new {
   
   return $self->check;
 }
+sub type {
+  my($self)=@_;
+  return $self->{type};
+};
 sub run {
   my ($self)=shift;
   if( $self->{type} eq "text/plain" ) {

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl -d
 use strict;
 use warnings;
 use common::sense;
@@ -14,13 +14,15 @@ use Getopt::WonderBra;
 our(%cfg);
 BEGIN {
   sub help {
-    say "Usage: $0 [ -f logfile ] [ process ]";
+    say "Usage: $0 [ -f logfile ] [ exec or script ]";
     say "";
     say "  accepts a script on stdin if process==-";
     say "  in this case, script must start with shebang line";
     say "";
     say "  -f [name] : use logfile name";
     say "  -q        : suppress output to fds 0,1,2";
+    say "  -p        : pipe script to stdin";
+    say "  -z        : resplit args.  usefur for shebang lines"
   }
   sub version {
     local($")=".";
@@ -28,16 +30,25 @@ BEGIN {
   };
 }
 INIT {
-  $cfg{logfile}=path("log/capture.log");
   $cfg{mode}=">";
-
+  $cfg{pipe}=0;
+  my $script;
+  if($ARGV[0] =~ m{^\s*-z}){
+    $script=pop;
+    $cfg{shebang}=1;
+    @ARGV=map { split } "@ARGV";
+  };
   unless(grep { $_ eq '--' } @ARGV){
     print STDERR "warning: no --\n";
   };
-  @ARGV = getopt("aqf:",@ARGV);
+  @ARGV = getopt("zqf:p",@ARGV);
   while(($_=shift(@ARGV))ne'--'){
     if($_ eq '-f') {
       $cfg{logfile}=path(shift(@ARGV));
+    } elsif ( $_ eq '-z' ) {
+      # say nothing, act natural
+    } elsif ( $_ eq '-p' ) {
+      $_=!$_ for $cfg{pipe};
     } elsif ( $_ eq '-q' ) {
       open(STDIN,"</dev/null");
       open(STDOUT,">/dev/null");
@@ -46,6 +57,14 @@ INIT {
       die "unexpected $_";
     };
   };
+  if($cfg{shebang}){
+    if($cfg{pipe}){
+      open(STDIN,"<$script");
+      undef($script);
+    } else {
+      unshift(@ARGV,$script);
+    }
+  }
 }
 my (@argv);
 our(@str);
@@ -60,8 +79,20 @@ BEGIN {
     [new IO::Pipe,      *STDERR, buf(),'E'],
   ];
 };
-
+unless(@ARGV) {
+  die "no program or script to run";
+};
 my $old = umask 0077;
+unless(defined($cfg{logfile})){
+  for($cfg{logfile}="$ARGV[0]"){
+    s{([.][^/.]*)?$}{.log};
+    if($cfg{logfile}eq$ARGV[0]){
+      # looks like script ended in .log, so double down
+      $cfg{logfile}=$_="$_.log";
+    };
+    $_=path($_);
+  };
+};
 $cfg{logfile}->parent->mkdir;;
 open(my $log,$cfg{mode}, $cfg{logfile});
 umask $old;
@@ -70,24 +101,16 @@ $log->say("C: ", grep { s{\s+}{ }g;1; } pp(\@ARGV));
 my $dead=0;
 my (%dat);
 my (@key) = qw( r w b p );
+sub like_path($){
+  for($_[0]){
+    return 0 unless defined;
+    return m{^[-/a-zA-Z0-9_~]+$}?1:0;
+  };
+};
 sub start_child() {
-  $DB::single=1;
-  my $pid;
-  $pid=fork;
-  return $pid if $pid;
-  delete $SIG{CHLD};
   open($str[0][0],"<&".fileno($str[0][1]->reader));
   open($str[1][1],">&".fileno($str[1][0]->writer));
   open($str[2][1],">&".fileno($str[2][0]->writer));
-  for(map { $_->[0], $_->[1] } @str) {
-    $_->autoflush(1);
-  };
-  if($ARGV[0] eq '-') {
-    $ARGV[0]='perl';
-  };
-  exec(@ARGV);
-  my $msg="Exec: @ARGV: $!";
-  die $msg;
 }
 my $ip;
 sub decode {
