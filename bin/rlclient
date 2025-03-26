@@ -1,0 +1,41 @@
+#!/usr/bin/perl
+# vim: ts=2 sw=2 ft=perl
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+  if 0;
+
+$|++;
+
+use common::sense;
+
+use autodie;
+
+use Nobody::Util;
+
+our(@VERSION) = qw( 0 1 0 );
+
+use Term::ReadLine::Perl5;
+my ($rl)=Term::ReadLine->new( );
+$rl->ornaments(1);
+while(defined($_=$rl->readline("text> "))) {
+  $rl->write($_);
+  
+}
+
+__DATA__
+use IO::Socket::INET;
+
+my $sock = IO::Socket::INET->new( "walrus:4007" );
+die "no socket" unless defined $sock;
+open(STDIN,"cat files|");
+my ($text)=join("",<STDIN>);
+$text=substr($text,0,512);
+close(STDIN);
+for(split m{}, $text) { 
+  $sock->print($));
+};
+close(STDIN);
+if(fork) {
+  while(<$sock>){ 
+    print;
+  };
+} else {
