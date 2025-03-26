@@ -164,3 +164,4 @@ sub set_conv {
   printf "saved %d convs to list\n", scalar(@list),"\n";
   return $conv;
 }
+1;
