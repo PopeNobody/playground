@@ -4,17 +4,7 @@ eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
 use FindBin qw($Bin);
-open(STDERR,"|cat >&2");
-open(STDOUT,">&STDERR");
-BEGIN {
-  for(map { "$_" } $Bin) {
-    s{/s?bin$}{};
-    $FindBin::prefix="$_";
-  };    
-};
-BEGIN {
-  use lib $FindBin::prefix."/lib";
-};
+use FindLib;
 use common::sense;
 use AI::Util;
 use AI::UI;
@@ -24,12 +14,11 @@ our(@VERSION) = qw( 0 1 0 );
 use Getopt::WonderBra;
 use AI::Conv;
 use AI::Config qw(get_api_mod);
+my ($delete,$text,$mock) = 0;
+my ($edit,$prompt_file,$conv) = ( 1 );
 
 die "Session not configured" unless defined(AI::Config::get_api_ua);
 
-@ARGV = getopt("mdc:f:e",@ARGV);
-my ($delete,$text,$mock) = 0;
-my ($edit,$prompt_file,$conv) = ( 1 );
 sub help {
   say "usage; $0 [ -f \$prompt_file ] [ -e ]";
   say "";
@@ -51,6 +40,9 @@ sub help {
 sub version {
   say "@VERSION";
 };
+
+
+@ARGV = getopt("mdc:f:e",@ARGV);
 while(($_=shift)ne'--'){
   if( $_ eq '-c') {
     $conv=path(shift);
@@ -67,9 +59,8 @@ while(($_=shift)ne'--'){
     die "bad arg: $_";
   };
 };
-ddx([$conv]);
+
 $conv=>set_conv($conv);
-ddx([$conv]);
 
 my $res;
 do {
@@ -81,3 +72,17 @@ do {
   }
 } while $res->{type} ne "text/plain";
 
+#    open(STDERR,"|cat >&2");
+#    open(STDOUT,">&STDERR");
+#    BEGIN {
+#      for(map { "$_" } $Bin) {
+#        s{/s?bin$}{};
+#        $FindBin::prefix="$_";
+#      };    
+#    };
+#    BEGIN {
+#      use lib $FindBin::prefix."/lib";
+#    };
+
+
+1;

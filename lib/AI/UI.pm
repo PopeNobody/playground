@@ -3,12 +3,13 @@ use base "Exporter";
 use lib 'lib';
 use common::sense;
 use AI::Util;
+use subs qw( run_script );
+our($prompt_file, $conv, $edit, $res, $req );
+our($edit,$user,$prompt_file,$conv)=(1, "nobody");
 our(@EXPORT)=qw(
 transact edit set_conv $conv $prompt_file $edit
 run_script may_edit
 );
-use IO::Socket::UNIX;
-use IO::Socket;
 if(0) {
   @_ = qw(IO::Socket::UNIX  IO::Socket);
   my ($fmt) = "%s->isa('%s')";
@@ -19,6 +20,7 @@ if(0) {
     ddx([$@]) if($@);
   };
 };
+
 sub edit_and_transact {
   unless(defined($prompt_file)){
     $prompt_file=$conv->pair_name("prompt");
@@ -32,7 +34,6 @@ sub edit_and_transact {
   };
   $conv->transact();
 }
-our($edit,$user,$prompt_file,$conv)=(1, "nobody");
 ## This does a transaction on a conversation.  If
 ## the last message was from a user, it sends it,
 ## and adds the response to the converstaion.  If,
@@ -51,7 +52,7 @@ sub transact {
     # last thing seen was plain text from bot, let's
     # get him moving.
     $res = edit_and_transact;
-  } elsif( $conv->last->type ~= m{^executable} ) {
+  } elsif( $conv->last->type =~ m{^executable} ) {
     # we have a script to run, let's do it.
     $res = run_script;
   };
