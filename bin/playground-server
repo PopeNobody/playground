@@ -4,33 +4,14 @@ eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
 use lib "lib";
-BEGIN {
-  # Check for required environment variables
-  # this is way up here to check before the AI::Config init
-  # code uses and devours them.  Because I don't want them 
-  # lurking at /proc/$$/envronment
-  unless (defined($ENV{API_KEY}) and defined($ENV{API_MOD})) {
-    die "\$API_KEY and \$API_MOD must be set\n";
-  }
-}
 use common::sense;
 use autodie;
 use AI::Util;
+use AI::Playground;
 use Path::Tiny;
 use Getopt::WonderBra;
-use lib 'lib';
-use AI::Playground;
-
-our(@VERSION) = qw( 0 1 0 );
-$SIG{__DIE__}=sub {
-  $DB::single=1;
-  die @_;
-};
-$SIG{__WARN__}=sub {
-  $DB::single=1;
-  warn @_;
-};
-# Parse command-line options
+use Data::Dumper;
+our(@VERSION)=qw(0 1 0);
 my %options = (
     port => 1000+$<,
     model => $ENV{API_MOD},
@@ -61,9 +42,7 @@ Start the AI Playground server.
 
 Options:
   -p PORT          Port to listen on (default: $options{port})
-  -m MODEL         AI model to use (default: $options{model})
   -d               Enable debug output
-  -s               Enable secure mode
   --help           Show this help message
   --version        Show version information
 
@@ -84,10 +63,10 @@ sub version {
 
 # Create and start the AI Playground server
 my $playground = AI::Playground->new(
-    port => $options{port},
-    model => $options{model},
-    debug => $options{debug},
-    secure_mode => $options{secure_mode},
+  port => $options{port},
+  model => $options{model},
+  debug => $options{debug},
+  secure_mode => $options{secure_mode},
 );
 
 $playground->start();

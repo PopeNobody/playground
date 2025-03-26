@@ -7,21 +7,29 @@
         textarea { width: 100%; font-family: monospace; }
         .output { border: 1px solid #ccc; padding: 10px; margin-top: 10px; background: #f5f5f5; }
         pre { white-space: pre-wrap; }
+        .input { width: 50%; float: right; }
+        .output { .width: 50%; float: left; }
     </style>
 </head>
 <body>
     <h1>AI Playground - <TMPL_VAR NAME="instance_id"></h1>
     <p>Connected to <TMPL_VAR NAME="model"> via <TMPL_VAR NAME="api_url"></p>
-    <form method="post" action="/submit">
+    <div id="input" class="input">
+    <form method="post" action="/">
         <h2>Input:</h2>
+        <select name="dropdown">
+          <option value="value1">Option 1</option>
+          <option value="value2">Option 2</option>
+          <option value="value3">Option 3</option>
+        </select>
         <textarea id="editField" name="editField" rows="15" cols="80" placeholder="Enter your prompt or script here..."><TMPL_VAR NAME="edit_field_value"></textarea>
         <br>
-        <input type="submit" value="Submit to AI">
+        <input type="submit" value="Send">
     </form>
+    </div>
     <div id="output" class="output">
         <h2>Response:</h2>
         <div id="response"><TMPL_VAR NAME="response_html"></div>
     </div>
-    <p><a href="/instances">View AI Instances Communication</a></p>
 </body>
 </html>

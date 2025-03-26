@@ -1,4 +1,4 @@
-package AI::Playground;
+package AI::Agent;
 
 use strict;
 use warnings;
@@ -19,14 +19,14 @@ our $VERSION = '0.001';
 
 =head1 NAME
 
-AI::Playground - An evolving AI pipeline for code execution, HTTP requests, and multi-agent collaboration
+AI::Agent - An evolving AI pipeline for code execution, HTTP requests, and multi-agent collaboration
 
 =head1 SYNOPSIS
 
-  use AI::Playground;
+  use AI::Agent;
 
   # Start a playground server
-  my $playground = AI::Playground->new(
+  my $playground = AI::Agent->new(
     port => 4001,
     model => 'claude'
   );
@@ -35,7 +35,7 @@ AI::Playground - An evolving AI pipeline for code execution, HTTP requests, and 
 
 =head1 DESCRIPTION
 
-AI::Playground is a system that allows AI models to interact with your system through
+AI::Agent is a system that allows AI models to interact with your system through
 a controlled environment. It can execute code provided by AI models, make HTTP requests,
 compose emails, and facilitate multi-agent collaboration.
 
@@ -45,7 +45,7 @@ The system supports multiple AI models including Claude, GPT, Gemini, and Grok.
 
 =head2 new(%options)
 
-Creates a new AI::Playground instance.
+Creates a new AI::Agent instance.
 
 Options:
   * port - Port to listen on (default: user ID)
@@ -79,14 +79,14 @@ sub new {
 
 =head2 start()
 
-Starts the AI Playground server. Returns the server object.
+Starts the AI Agent server. Returns the server object.
 
 =cut
 
 sub start {
   my ($self) = @_;
 
-  print "Starting AI Playground Server for $self->{instance_id} on port $self->{port}...\n";
+  print "Starting AI Agent Server for $self->{instance_id} on port $self->{port}...\n";
 
   #  my $comm_info = start_comm_server($self->{instance_id}, $self->{instance_type});
   #$self->{comm_info} = $comm_info;
