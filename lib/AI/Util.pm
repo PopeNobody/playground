@@ -21,13 +21,13 @@ our(@ISA)=qw(Exporter);
 our(@EXPORT)=qw( 
   cal_loc decode_json encode_json false format
   path safe_isa serdate serial_maker
-  true
+  true qquote
 
   pp ppx dd ddx ee eex
 
   $Bin $Pre $Script
 );
-
+*qquote=*Data::Dumper::qquote;
 *true=*JSON::true;
 *false=*JSON::false;
 sub format;
