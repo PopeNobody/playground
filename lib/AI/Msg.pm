@@ -1,12 +1,5 @@
 use lib 'lib';
 
-package IO::File;
-sub dbg {};
-package main;
-*dbg=*IO::FILE::dbg;
-package AI::Msg;
-*dbg=*IO::FILE::dbg;
-
 use strict;
 use warnings;
 use AI::Util;

@@ -51,6 +51,7 @@ sub redact {
 };
 BEGIN {
   if(defined($ENV{API_MOD}) and defined($ENV{API_KEY})){
+    return unless length($ENV{API_MOD});
     my ($id) = map { split } qx(id -un);
     my $model = path("etc/")->child($id.".json");
     unless(-e $model) {

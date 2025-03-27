@@ -1,6 +1,17 @@
 #!/usr/bin/perl
 
+package IO::File;
+sub dbg {};
+
+package main;
+*dbg=*IO::FILE::dbg;
+
+package AI::Msg;
+*dbg=*IO::FILE::dbg;
+
 package AI::Util;
+*dbg=*IO::FILE::dbg;
+
 use FindBin qw($Bin);
 use lib "lib";
 our($Pre);
@@ -21,13 +32,20 @@ our(@ISA)=qw(Exporter);
 our(@EXPORT)=qw( 
   cal_loc decode_json encode_json false format
   path safe_isa serdate serial_maker
-  true
+  true qquote randomize
 
   pp ppx dd ddx ee eex
 
   $Bin $Pre $Script
 );
-
+sub randomize(@) {
+  my (@list)=splice(@_);
+  while(@list){
+    push(@_,splice(@list,rand(@list),1));
+  };
+  return @_;
+};
+*qquote=*Data::Dumper::qquote;
 *true=*JSON::true;
 *false=*JSON::false;
 sub format;
@@ -57,7 +75,6 @@ sub call_loc {
   my ($i)=0;
   my ( $pack, $file, $line ) = caller($i);
   while( $pack eq __PACKAGE__) {
-
     ($pack,$file,$line)=caller(++$i);
   };
   return $file, $line;
@@ -137,6 +154,16 @@ sub decode_json {
   return $_ if defined;
   die  join("\n\n",$@,pp(@copy));
 };
-
-
+{
+  package Path::Tiny;
+  sub bak {
+    return shift->suf(".bak");
+  };
+  sub sav {
+    return shift->suf("sav");
+  };
+  sub suf {
+    return map { path(shift->stringify.$_) } @_;
+  };
+}
 1;

@@ -66,9 +66,9 @@ BEGIN {
 sub new {
   my ($class, $dir, $file) = ( shift, shift);
   ($class) = ( ref($class) || $class );
-  die "file is required" unless defined($dir);
+  die "dir is required" unless defined($dir);
   good_path($dir);
-  die "file should be Path::Tiny"  unless blessed($dir)
+  die "dir should be Path::Tiny"  unless blessed($dir)
     and $dir->isa('Path::Tiny');
   $dir=$dir->absolute->mkdir;
   $file=$dir->child("conv.jwrap");
@@ -76,8 +76,6 @@ sub new {
     dir=>$dir,
     file => $file,
     msgs => [ ],
-    pend => undef,
-    sent => undef,
   };
   bless $self, $class;
   if (-e $file) {
@@ -107,13 +105,14 @@ sub pair_name {
   my ($self)=shift;
   my ($type)=shift;
   my ($suf_pair)=$xlate{$type};
+  my ($dir)=$self->{dir};
   die "no pair for type: $type" unless defined $suf_pair;
   unless(ref($suf_pair)eq'ARRAY' and 2==@$suf_pair ) {
     die "$suf_pair should be array of two"
   };
-  $suf_pair=[ map { "$_" } @$suf_pair ];
   for(@$suf_pair) {
     $_=sprintf("msg.%04d.$_",(int($self->length/2)*2)) if(length);
+    $_=$dir->child($_) 
   };
   return $suf_pair;
 };
@@ -136,7 +135,7 @@ sub jar {
 sub save_jwrap {
   my ($self,$file) = @_;
   $file //= $self->{file};
-  $file->parent->mkpath;
+  $file->parent->mkdir;
   my $jwrap=$self->as_jwrap;
   $file->spew(encode_json($jwrap));
   return $self;
@@ -227,7 +226,11 @@ sub file {
 };
 sub dir {
   my ($self)=shift;
-  $self->{dir};
+  if(@_) {
+    return map { $self->{dir}->child($_) } @_;
+  } else {
+    $self->{dir};
+  };
 };
 sub last {
   my ($self)=shift;

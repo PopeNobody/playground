@@ -2,11 +2,15 @@
 # vim: ts=2 sw=2 ft=perl
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
-BEGIN { open(STDIN,"</dev/tty"); open(STDOUT,">/dev/tty"); open(STDERR,">&STDOUT"); };
-  our(@VERSION) = qw( 0 1 0 );
+BEGIN { 
+  open(STDIN,"</dev/tty"); 
+  open(STDOUT,">/dev/tty"); 
+  open(STDERR,">&STDOUT");
+};
+our(@VERSION) = qw( 0 1 0 );
 $|++;
 use AnyEvent;
-my ($agent)=Agent->new();
+my ($agent)=Agent->new(@ARGV);
 Agent->note("calling recv, then will exit");
 $agent->{covar}->recv;
 exit(0);
@@ -25,15 +29,19 @@ use AnyEvent::Log;
 use AnyEvent;
 use AE;
 sub note {
-  say STDERR "note: => @_";
+  local(@_)=@_;
+  while(chomp(@_)){
+    #say nothing, act natural
+  };
+  say STDERR "note: => $_" for @_;
+};
+sub handle_prompt($) {
+  note "conv: $conv ($_)" for @_;
 };
 sub new(@) {
   my ($class,%self)=@_;
   my ($self)=\%self;
-  note info=> "created new instance";
-  $self{timer} = AnyEvent->timer(
-    after=>60-time%60,
-    interval=>60, cb=>sub { note(serdate); });
+  note "info: created new instance";
   $self{covar} //= AE::cv;
   $self{model} //= get_api_mod;
   $self{agent} //= do {
@@ -41,20 +49,16 @@ sub new(@) {
     die "Session not configured" unless defined($agent);
     $agent
   };
-  ($self{port}) //= do {
+  $self{port} //= do {
     local(@_) = map { split } qx( id -u );
     ddx( "id returned: @_" );
     shift;
   };
-  $self{port}+=1000 while $self{port}<4000;
   note "creating  tcp server\n";
-  ddx ($self{serv});
   $self{serv} //= tcp_server $self{host}, $self{port}, sub {
     my ($fh, $host, $port) = @_;
-    ddx( "entering sub: ($fh,$host,$port)\n" );
-    ddx( fd => fileno($fh) );
-    syswrite($fh,"This is a test, this is only a test!\n\n");
-    ddx( fh=>$fh );
+    note("got connection: @_\n");
+    syswrite($fh,"helo!\n");
     my $hand;
     my $num;
     my $toggle;
@@ -62,37 +66,54 @@ sub new(@) {
       fh=>$fh,
       on_read => sub {
         local(@_)=@_;
-        note( {on_read=>\@_} );
-        my $rbuf=$hand->{rbuf};
-        note( {length=>length($rbuf) });
-        my $part=substr($hand->rbuf,0,length($hand->{rbuf}),"");
-        note( {part=>length($part), rbuf=>length($hand->{rbuf}) } );
+        note("read: @_");
+        my ($linelen)=0;
+        while(1) {
+          $linelen=index($hand->{rbuf},"\n");
+          note("linelen: $linelen");
+          if($linelen<0){
+            return;
+          };
+          $linelen++;
+          my ($line)=substr($hand->{rbuf},0,$linelen,"");
+          note("line: $line");
+          if($self{lines}) {
+            push(@{$self{text}},$line);
+            note("line: $line");
+            if(--$self{lines}){
+              note("expect $self{lines} more");
+            } else {
+              note("/recv complete");
+              handle_prompt(join("",@{$self{text}}));
+            };
+            next;
+          } elsif ( $line =~ m{^\s*$} ) {
+            # say nothing, act natural
+            next;
+          } elsif ( $line =~ m{^\s*/recv\s+(\d*[1-9]\d*)\s+lines\s*$} ) {
+            if($self{lines}=$1){
+              $self{text}=[];
+              $hand->push_write("/send $self{lines} lines\n");
+              next;
+            };
+          }
+          $hand->push_write(join("",
+              "invalid syntax.  Reject\n",
+              "   ",qquote($line),"\n"
+            ));
+        }
       },
       on_error => sub {
         local(@_)=@_;
-        note( {on_error=>\@_} );
+        $_="error: $_" for @_;
+        note( @_ );
       },
       on_eof => sub {
         local(@_)=@_;
-        note( {on_eof=>\@_} );
+        $_ = "eof $_" for @_ 
       },
-      on_rtimeout => sub {
-        local(@_)=@_;
-        note( {on_eof=>\@_} );
-      },
-      on_wtimeout => sub {
-        local(@_)=@_;
-        note( {on_eof=>\@_} );
-      },
-      on_timeout => sub {
-        local(@_)=@_;
-        note( {on_eof=>\@_} );
-      },
-      read_size => 1024*1024,
     );
   };
-
-
   bless($self,$class);
 };
 sub url() {

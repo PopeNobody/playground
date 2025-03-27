@@ -4,22 +4,11 @@ use lib 'lib';
 use common::sense;
 use AI::Util;
 use subs qw( run_script );
-our($prompt_file, $conv, $edit, $res, $req );
+our($conv, $edit, $res, $req );
 our($edit,$user,$prompt_file,$conv)=(1, "nobody");
 our(@EXPORT)=qw(
-transact edit set_conv $conv $prompt_file $edit
-run_script may_edit
+  transact edit set_conv $conv $prompt_file $edit run_script may_edit
 );
-if(0) {
-  @_ = qw(IO::Socket::UNIX  IO::Socket);
-  my ($fmt) = "%s->isa('%s')";
-  for( qw( 0 1 ) ) {
-    my ($code)=sprintf($fmt,@_);
-    @_=reverse(@_);
-    say "$code => ", (eval($code)?1:0);
-    ddx([$@]) if($@);
-  };
-};
 
 sub edit_and_transact {
   unless(defined($prompt_file)){
@@ -105,7 +94,7 @@ sub run_script {
   $res=transact();
 };
 sub set_conv {
-  if ( defined($conv) and $conv ne $_[0] and $_[0]ne$conv->file ) {
+  if ( defined($conv) and $conv ne $_[0] and $_[0] ne $conv->file ) {
     die "conv already running.  clear it first!";
   } elsif ( defined($conv) ) {
     return $conv;
