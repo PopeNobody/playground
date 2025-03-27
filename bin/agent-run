@@ -2,7 +2,8 @@
 # vim: ts=2 sw=2 ft=perl
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
-our(@VERSION) = qw( 0 1 0 );
+BEGIN { open(STDIN,"</dev/tty"); open(STDOUT,">/dev/tty"); open(STDERR,">&STDOUT"); };
+  our(@VERSION) = qw( 0 1 0 );
 $|++;
 use AnyEvent;
 my ($agent)=Agent->new();
@@ -24,15 +25,15 @@ use AnyEvent::Log;
 use AnyEvent;
 use AE;
 sub note {
-  say STDERR "note: => ", pp(\@_);
+  say STDERR "note: => @_";
 };
-sub new() {
+sub new(@) {
   my ($class,%self)=@_;
   my ($self)=\%self;
   note info=> "created new instance";
   $self{timer} = AnyEvent->timer(
-    after=>15-time%15,
-    interval=>15, cb=>sub { note(serdate); });
+    after=>60-time%60,
+    interval=>60, cb=>sub { note(serdate); });
   $self{covar} //= AE::cv;
   $self{model} //= get_api_mod;
   $self{agent} //= do {

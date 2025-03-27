@@ -1,25 +1,206 @@
 #!/usr/bin/perl
-# vim: ts=2 sw=2 ft=perl
+
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 
-$|++;
-
+BEGIN { open(STDIN,"</dev/tty"); open(STDOUT,">/dev/tty"); open(STDERR,">&STDOUT"); };
+STDOUT->autoflush;
+STDERR->autoflush;
+use AnyEvent::ReadLine::Gnu;
+use AnyEvent::Socket;
+use AnyEvent;
+use Nobody::Util;
+use Term::ReadLine::Perl5;
+use autodie;
 use common::sense;
 
-use autodie;
-
-use Nobody::Util;
-
 our(@VERSION) = qw( 0 1 0 );
+sub randomize(@) {
+  my (@list)=splice(@_);
+  while(@list){
+    push(@_,splice(@list,rand(@list),1));
+  };
+  return @_;
+};
+my (@ai) = qw(gpt grok gem claude);
+my (@todo);
+for(my $i=0;$i<10;$i++) {
+  @todo=randomize(@todo ? @todo : @ai);
+};
+@_ = map { split } map { $_,qx(id -u $_) } map { split } splice(@todo);
+our(%ai);
+my @var;
+use vars (@var = qw($fh  $peerhost  $peerport  $host  $port  $name $service));
 
-use Term::ReadLine::Perl5;
-my ($rl)=Term::ReadLine->new( );
-$rl->ornaments(1);
-while(defined($_=$rl->readline("text> "))) {
-  $rl->write($_);
-  
-}
+while(@_) {
+  *ai={name=>shift(@_),port=>shift(@_),host=>'walrus'};
+  push(@todo,\%ai);
+  ($ai{host},$ai{port})=parse_hostport $ai{host},$ai{port};
+  @ai{ qw(fh peerhost peerport) } = do {
+    tcp_connect $ai{host}, $ai{port}, my $cv = AE::cv; $cv->recv
+  } and last;
+};
+die("unable to connect to any ai") unless defined $ai{fh};
+
+
+our($prompt_file)= path("prompt.txt");
+my $bak=path("$prompt_file.bak");
+my ($ww, $wbuf);
+
+print "Connected to $peerhost:$peerport.\nEscape character is '^]'.\n";
+
+my $rl;
+$rl = new AnyEvent::ReadLine::Gnu on_line => sub {
+  for( $_[0] ) {
+    if(s{^\s*/\s*}{} and s{\s*$}{}) {
+      if($_ eq "edit") {
+        $bak->spew($wbuf);
+        system("vi $prompt_file");
+        if($?) {
+          $prompt_file->rename("$prompt_file.save");
+          $prompt_file->touch->spew($wbuf);
+        } else {
+          $wbuf=$prompt_file->slurp;
+        };
+      } elsif ($_ eq "send") {
+        @_=$prompt_file->lines;
+        $ai{fh}->autoflush;
+        my ($recv)="/recv ".scalar(@_)." lines\n";
+        for( $recv){
+          $rl->print($_);
+          $ai{hand}->push_write(
+            $recv
+          );
+        };
+        my (@reader);
+        @reader=(
+          line=>sub{
+            my($hand,$line)=@_;
+            note("push_line: $line");
+            if($line =~ m{^\s*$}){
+              $hand->push_read(@reader);
+              return;
+            }
+            if($line =~ m{^\s*/send\s*(\d*[1-9]\d*)\s*lines}){
+              $hand->push_write("/cancel");
+            };
+          }
+        );
+        #        for(@_){
+        #  $rl->print($_);
+        #  $ai{fh}->print($_);
+        # };
+      } elsif ($_ eq "quit") {
+        exit(1);
+      };
+    } else {
+      $wbuf .= "$_\x0a";
+    };
+  }
+};
+sub note {
+  local(@_)=@_;
+  chomp(@_);
+  for(@_) {
+    if(defined($rl)){
+      $rl->print("note: => $_");
+    } else {
+      say STDERR "note: => $_";
+    };
+  }
+};
+if($prompt_file->exists){
+  $rl->print($wbuf=$prompt_file->slurp);
+  $prompt_file->spew($wbuf);
+};
+
+my $quit = AE::cv;
+
+my ($rw, $rbuf, $tw);
+
+$ai{hand} = new AnyEvent::Handle (
+  fh=>$ai{fh},
+  on_error => sub {
+    local(@_)=@_;
+    note("error: @_");
+  },
+  on_eof => sub {
+    local(@_)=@_;
+    note("eof @_");
+  }
+);
+
+
+#    $rw = AE::io $ai{fh}, 0, sub {
+#       my $len = sysread $ai{fh}, $rbuf, 1024, length $rbuf;
+#    
+#       if ($len > 0) {
+#         if ($rbuf =~ /\x0a$/) {
+#           undef $tw;
+#           $rl->hide;
+#           print $rbuf;
+#           $rl->show;
+#           $rbuf = "";
+#         } else {
+#           $tw ||= AE::timer 0.2, 0, sub {
+#             undef $tw;
+#             $rl->hide;
+#             print $rbuf;
+#             print "...\n";
+#             $rl->show;
+#             $rbuf = "...";
+#           };
+#         }
+#       } elsif (defined $len) {
+#         print "$rbuf\nEOF received, exiting.\n";
+#         exit 0;
+#       } else {
+#         # we assume we never get EAGAIN, sorry
+#         print "$rbuf\nERROR: $!\n";
+#         exit 1;
+#       }
+#    };
+
+#$rl->set_signals;
+$rl->unbind_key (9);
+
+$rl->add_defun (telnet_escape => sub {
+   print "$rbuf\nEscape detected, exiting.\n";
+   exit 0;
+}, 0x1d);
+
+$| = 1;
+
+$quit->recv;
+
+__END__
+
+=head1 NAME
+
+   rltelnet - connect to a socket with readline frontend
+
+=head1 SYNOPSIS
+
+   rltelnet www.nethype,de:80
+   rltelnet www.google.com 80
+   rltelnet unix/ /path/to/socket
+
+=head1 DESCRIPTION
+
+This program connects to a socket using AnyEvent::Socket::tcp_connect, prints
+everything it receives from the socket and offers a readline editing interface
+to send lines to the socket.
+
+This is very remotely what telnet does when used on a non-telnet socket,
+except that it uses readline and supports more types of socketsd (e.g.
+unix domain sockets).
+
+=head1 AUTHOR, CONTACT, SUPPORT
+
+ Marc Lehmann <schmorp@schmorp.de>
+ http://software.schmorp.de/pkg/AnyEvent-ReadLine-Gnu.html
+
+=cut
 
 __DATA__
 use IO::Socket::INET;
