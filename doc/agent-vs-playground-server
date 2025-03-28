@@ -1,0 +1,17 @@
+## Know your interfaces!
+
+An agent is similar to an HTTP User Agent, except it does not
+sepak HTTP.
+
+It is lighter weight that a playground server.  While the plground
+server holds a conversation, and speaks http, an Agent speaks a
+simple tcp/ip protocol, and does not have a conversation.  All it
+does is take one message from the user as a flat file ( not json )
+and pass it on to the Playground.
+
+The Playground is a server to the Agent and a client to the provider.
+The Agent is a server ( or interface to the server ) to the user,
+and a client to the Playground.
+
+Hope that helps.  I wrote this down because I kept goign "what the fuck?"
+
