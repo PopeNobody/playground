@@ -2,73 +2,15 @@
 # vim: ts=2 sw=2 ft=perl
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
+BEGIN { 
+  open(STDIN,"</dev/tty"); 
+  open(STDOUT,">/dev/tty"); 
+  open(STDERR,">&STDOUT");
+};
+our(@VERSION) = qw( 0 1 0 );
 $|++;
-use lib "lib";
-use common::sense;
-use autodie;
-use AI::Util;
-use AI::Agent;
-use Path::Tiny;
-use Getopt::WonderBra;
-use Data::Dumper;
-our(@VERSION)=qw(0 1 0);
-my %options = (
-    port => 1000+$<,
-    model => $ENV{API_MOD},
-    debug => defined($ENV{DEBUG}) ? 1 : 0 ,
-    secure_mode => defined($ENV{SECURE_MODE}) ? 1 : 0,
-);
-@ARGV = getopt("p:m:ds", @ARGV);
-while (@ARGV && $ARGV[0] ne '--') {
-    my $arg = shift @ARGV;
-    if ($arg eq '-p') {
-        $options{port} = shift @ARGV;
-    } elsif ($arg eq '-m') {
-        $options{model} = shift @ARGV;
-    } elsif ($arg eq '-d') {
-        $options{debug} = 1;
-    } elsif ($arg eq '-s') {
-        $options{secure_mode} = 1;
-    } else {
-        die "Unknown option: $arg\n";
-    }
-}
+ddx( "will create ", __PACKAGE__ );
+my $agent=Agent->new;
+my ($cv) = AnyEvent->condvar;
+$cv->recv;
 
-sub help {
-    exit(0);
-}
-
-sub version {
-    print "$0 version ", join('.', @VERSION), "\n";
-    exit(0);
-}
-
-
-# Create and start the AI Agent server
-my $playground = AI::Agent->new(
-  port => $options{port},
-  model => $options{model},
-  debug => $options{debug},
-  secure => $options{secure},
-);
-
-$playground->start();
-
-# Keep the server running
-AE::cv->recv;
-__DATA__
-Usage: $0 [options]
-
-Start the AI Agent server.
-
-Options:
-  -p PORT          Port to listen on
-  -d               Enable debug output
-  --help           Show this help message
-  --version        Show version information
-
-Environment variables:
-  API_MOD          AI model to use
-  DEBUG            Enable debug output
-  SECURE_MODE      Enable secure mode
-  API_KEY          API key for the selected model
