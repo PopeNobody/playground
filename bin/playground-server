@@ -17,5 +17,5 @@ use Data::Dumper;
 our(@VERSION)=qw(0 1 0);
 
 
-
-$playground->run();
+my ($pg)=AI::Playground->new;
+$pg->run();
