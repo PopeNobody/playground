@@ -15,66 +15,7 @@ use Path::Tiny;
 use Getopt::WonderBra;
 use Data::Dumper;
 our(@VERSION)=qw(0 1 0);
-my %options = (
-    port => 1000+$<,
-    model => $ENV{API_MOD},
-    debug => defined($ENV{DEBUG}) ? 1 : 0 ,
-    secure => defined($ENV{SECURE}) ? 1 : 0,
-);
-@ARGV = getopt("p:m:ds", @ARGV);
-while (@ARGV && $ARGV[0] ne '--') {
-    my $arg = shift @ARGV;
-    if ($arg eq '-p') {
-        $options{port} = shift @ARGV;
-    } elsif ($arg eq '-m') {
-        $options{model} = shift @ARGV;
-    } elsif ($arg eq '-d') {
-        $options{debug} = 1;
-    } elsif ($arg eq '-s') {
-        $options{secure} = 1;
-    } else {
-        die "Unknown option: $arg\n";
-    }
-}
-
-sub help {
-    print <<HELP;
-Usage: $0 [options]
-
-Start the AI Playground server.
-
-Options:
-  -p PORT          Port to listen on (default: $options{port})
-  -d               Enable debug output
-  --help           Show this help message
-  --version        Show version information
-
-Environment variables:
-  API_MOD          AI model to use ( defaults to \$(id -u)
-  DEBUG            Enable debug output
-  SECURE      Enable secure mode
-  API_KEY          API key for the selected model
-HELP
-    AI::cv->send;
-}
-my $port=4003;
-use AnyEvent::Socket;
-tcp_server undef, $port, sub {
-  warn "got connection\n";
-  warn "but nothing else is implemented\n";
-};
-
-sub version {
-  print "$0 version ", join('.', @VERSION), "\n";
-}
 
 
-# Create and start the AI Playground server
-my $playground = AI::Playground->new(
-  port => $options{port},
-  model => $options{model},
-  debug => $options{debug},
-  secure => $options{secure},
-);
 
 $playground->run();

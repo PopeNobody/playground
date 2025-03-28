@@ -2,15 +2,10 @@
 # vim: ts=2 sw=2 ft=perl
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
-BEGIN { 
-  open(STDIN,"</dev/tty"); 
-  open(STDOUT,">/dev/tty"); 
-  open(STDERR,">&STDOUT");
-};
+
+use AI::Agent;
 our(@VERSION) = qw( 0 1 0 );
-$|++;
-ddx( "will create ", __PACKAGE__ );
-my $agent=Agent->new;
-my ($cv) = AnyEvent->condvar;
-$cv->recv;
+my $agent=AI::Agent->new;
+say STDERR "agent listening at: ", $agent->url;
+$agent->start;
 
