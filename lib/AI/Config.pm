@@ -55,6 +55,7 @@ BEGIN {
 
     my ($api_cfg)=$api_mod;
     my ($api_cfg)=map { m{^([^-]+)-(.*)} } $api_cfg;
+    s{gemini}{gem}g for $api_cfg;
 
     $api_cfg=path("etc/")->child($api_cfg.".json");
     *config = decode_json($api_cfg->slurp);
