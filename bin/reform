@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+# vim: ts=2 sw=2 ft=perl
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+  if 0;
+$|++;
+use common::sense;
+use autodie;
+use Nobody::Util;
+our(@VERSION) = qw( 0 1 0 );
+
+
+sub reform($) ;
+push(@ARGV, "etc/system-message.md") unless @ARGV;
+for(@ARGV){
+  reform $_;
+};
+
+sub reform($) {
+  my ($fn)=path(shift);
+  my (@ln);
+  local($_)=$fn->slurp;
+  local(@_)=split(m{\n},$_);
+  my($ln);
+  for(@_) {
+      
+  ddx($_) for @_;
+};

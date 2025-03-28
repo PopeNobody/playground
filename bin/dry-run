@@ -24,7 +24,7 @@ $convf=path($convf);
 $conv=AI::Conv->new(path("$convf"));
 my $i;
 my ($form)="dat/dry-run/conv%04d.jwrap";
-my $next = serial_maker($form,0);
+my $next = serial_maker(fmt=>$form,min=>0);
 unless(defined($next)) {
   die "failed to find next for $next";
 };
