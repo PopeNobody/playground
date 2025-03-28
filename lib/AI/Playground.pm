@@ -17,13 +17,18 @@ our(@VERSION) = qw( 0 1 0 );
 our(%self);
 sub new {
   my ($class)=shift;
-  my ($self) ={ @_ };
-  local(*self)=$self;  
+  my (%self)=@_;
+  my ($self)\%self;
+  $self{conv}||=AI::Conv->new;
   bless($self,$class);
 };
 sub run {
   AE::cv->recv;
 }
 sub mk_sock {
+  tcp_server undef, $port, sub {
+    warn "got connection\n";
+    warn "but nothing else is implemented\n";
+  };
 };
 1;
