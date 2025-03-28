@@ -66,7 +66,8 @@ BEGIN {
 sub new {
   my ($class, $dir, $file) = ( shift, shift);
   ($class) = ( ref($class) || $class );
-  die "dir is required" unless defined($dir);
+  $dir//=$class->next_dir;
+  ddx($dir);
   good_path($dir);
   die "dir should be Path::Tiny"  unless blessed($dir)
     and $dir->isa('Path::Tiny');
@@ -101,6 +102,20 @@ sub new {
 
   return $self->check();
 }
+my $first=path("dat/conv0000");
+
+sub next_dir {
+  my ($self)=shift;
+  my ($dir,@sub,$re)=path("dat");
+  if($dir->exists and (@sub=reverse sort $dir->children) ) {
+    for( shift(@sub)->stringify ) {
+      s{^[^0-9]+}{};
+      return path(sprintf "dat/conv-%04d",++$_);
+    };
+  } else {
+    return $first;
+  };
+};
 sub pair_name {
   my ($self)=shift;
   my ($type)=shift;

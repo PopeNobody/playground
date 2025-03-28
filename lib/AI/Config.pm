@@ -49,18 +49,15 @@ BEGIN {
     return unless length($ENV{API_MOD});
     my ($api_mod)=$ENV{API_MOD};
     delete $ENV{API_MOD} unless $^P;
-    say STDERR ppx("mod: $api_mod");
 
     my ($api_key)=$ENV{API_KEY};
     delete$ENV{API_KEY} unless $^P;
-    say STDERR ppx("key: $api_key");
 
     my ($api_cfg)=$api_mod;
     my ($api_cfg)=map { m{^([^-]+)-(.*)} } $api_cfg;
+
     $api_cfg=path("etc/")->child($api_cfg.".json");
-    say STDERR "cfg: $api_cfg exists: ", (-e $api_cfg ? 1 : 0 );
     *config = decode_json($api_cfg->slurp);
-    say STDERR ppx(\%config);
     $config{api_key}=$api_key;
     die "missing api key" unless defined get_api_key();
     die "No api_mod" unless defined get_api_mod();

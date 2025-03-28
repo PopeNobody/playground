@@ -1,3 +1,4 @@
+package AI::Msg;
 use lib 'lib';
 
 use strict;
@@ -20,30 +21,7 @@ BEGIN {
 
 # Create a single MIME::Types instance to be reused
 our $MIME_TYPES = MIME::Types->new();
-
-# Map interpreter commands to file extensions
-our %INTERPRETER_MAP = (
-    'perl'    => 'pl',
-    'python'  => 'py',
-    'python2' => 'py',
-    'python3' => 'py',
-    'bash'    => 'sh',
-    'sh'      => 'sh',
-    'zsh'     => 'sh',
-    'ksh'     => 'sh',
-    'dash'    => 'sh',
-    'ruby'    => 'rb',
-    'node'    => 'js',
-    'nodejs'  => 'js',
-    'php'     => 'php',
-    'Rscript' => 'r',
-    'lua'     => 'lua',
-    'awk'     => 'awk',
-    'sed'     => 'sed',
-    'tcl'     => 'tcl',
-    'tclsh'   => 'tcl',
-    'wish'    => 'tcl',
-);
+our %INTERPRETER_MAP;
 
 sub check {
   my $hash=shift;
@@ -213,5 +191,29 @@ sub as_jwrap {
   
   return $result;
 }
-
+BEGIN {
+  # Map interpreter commands to file extensions
+  %INTERPRETER_MAP = (
+    'perl'    => 'pl',
+    'python'  => 'py',
+    'python2' => 'py',
+    'python3' => 'py',
+    'bash'    => 'sh',
+    'sh'      => 'sh',
+    'zsh'     => 'sh',
+    'ksh'     => 'sh',
+    'dash'    => 'sh',
+    'ruby'    => 'rb',
+    'node'    => 'js',
+    'nodejs'  => 'js',
+    'php'     => 'php',
+    'Rscript' => 'r',
+    'lua'     => 'lua',
+    'awk'     => 'awk',
+    'sed'     => 'sed',
+    'tcl'     => 'tcl',
+    'tclsh'   => 'tcl',
+    'wish'    => 'tcl',
+  );
+}
 1;
