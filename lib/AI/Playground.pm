@@ -8,47 +8,23 @@ use common::sense;
 use autodie;
 use AI::Util;
 use Path::Tiny;
-BEGIN {
-  $ENV{API_KEY}="keykeykey";
-  $ENV{API_MOD}="modmodmod";
-};
-use AI::Config qw(get_api_key get_api_ua get_api_url get_api_mod  );
+use AI::Config qw(:all);
 use AI::Conv;
-use AnyEvent::HTTPD;
-use Data::Dumper;
-use File::Temp qw(tempfile);
-use HTTP::Request;
-use HTML::Template;
-use IO::Socket::UNIX;
-use LWP::UserAgent;
+use AnyEvent::Socket;;
+use AnyEvent::Handle;;
 our(@VERSION) = qw( 0 1 0 );
 
+our(%self);
 sub new {
   my ($class)=shift;
   my ($self) ={ @_ };
+  local(*self)=$self;  
   bless($self,$class);
 };
-sub start {
-  my ($self)=shift;
-  say STDERR "starting $self";
-  my $httpd = AnyEvent::HTTPD->new(port => $self->{port});
-  $httpd->reg_cb (
-    '/' => sub {
-      my ($httpd, $req) = @_;
-
-      $req->respond ({ content => ['text/html',
-            path("html")->child("root.html")->slurp()
-          ]});
-    },
-    '/test' => sub {
-      my ($httpd, $req) = @_;
-
-      $req->respond ({ content => ['text/html',
-            "<html><body><h1>Test page</h1>"
-            . "<a href=\"/\">Back to the main page</a>"
-            . "</body></html>"
-          ]});
-    },
-  );
-  $self->{httpd} = $httpd;
+sub run {
+  AE::cv->recv;
+}
+sub mk_sock {
+  tcp_server $host, $port, sub { #connect
 };
+1;

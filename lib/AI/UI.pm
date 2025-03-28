@@ -4,24 +4,20 @@ use lib 'lib';
 use common::sense;
 use AI::Util;
 use subs qw( run_script );
-our($conv, $edit, $res, $req );
-our($edit,$user,$prompt_file,$conv)=(1, "nobody");
+our($user,$file,$conv,$res,$req)=(1, "nobody");
 our(@EXPORT)=qw(
-  transact edit set_conv $conv $prompt_file $edit run_script may_edit
+  transact edit set_conv $conv $file $edit run_script may_edit
 );
 
 sub edit_and_transact {
-  unless(defined($prompt_file)){
-    $prompt_file=$conv->pair_name("prompt");
-    $prompt_file=path($prompt_file->[0]);
+  unless(defined($file)){
+    $file=$conv->pair_name("prompt");
+    $file=path($file->[0]);
   };
   if($conv->last->{role} eq "user") {
-    $prompt_file->spew($conv->last->as_jwrap);
+    $file->spew($conv->last->as_jwrap);
   };
-  if($edit) {
-    edit($prompt_file);
-  };
-  $conv->transact();
+  edit($file);
 }
 ## This does a transaction on a conversation.  If
 ## the last message was from a user, it sends it,
@@ -30,22 +26,21 @@ sub edit_and_transact {
 ## a new prompt.
 sub transact {
   die "you must creat and set a conv first!" unless defined($conv);
-  my $res;
   if($conv->last->{role} eq "user") {
     # my last message did nto go out, maybe edit it first.
-    $res = edit_and_transact;
+    edit_and_transact;
   } elsif( $conv->last->role eq "system" ) {
     # system message was last, let's start something
-    $res = edit_and_transact;
+    edit_and_transact;
   } elsif( $conv->last->type eq "text/plain" ) { 
     # last thing seen was plain text from bot, let's
     # get him moving.
-    $res = edit_and_transact;
+    edit_and_transact;
   } elsif( $conv->last->type =~ m{^executable} ) {
     # we have a script to run, let's do it.
-    $res = run_script;
+    run_script;
   };
-  return $res;
+  $conv->transact();
 }
 sub edit($) {
   my ($file)=shift;
@@ -91,7 +86,6 @@ sub run_script {
   };
   my ($msg) = AI::Msg->new("system","output",$capture->slurp);
   $conv->add($msg);
-  $res=transact();
 };
 sub set_conv {
   if ( defined($conv) and $conv ne $_[0] and $_[0] ne $conv->file ) {

@@ -3,31 +3,16 @@ use common::sense;
 use Exporter 'import';
 use lib 'lib';
 use AI::Util;
+use AI::UserAgent;
 
 our @EXPORT_OK = qw(
   get_api_info get_api_key get_api_ua get_api_mod get_api_url
 );
-{
-  package AI::UserAgent;
-  use parent 'LWP::UserAgent';
-  sub new {
-    my ($class,%args)=@_;
-    $class->SUPER::new(%args);
-  };
-  sub request {
-    my $self=shift;
-    for($self->{_cookie_jar}) {
-      $_->load() if defined;
-    };
-    my $res=$self->SUPER::request(@_);
-    my $req=shift;
-    for($self->{_cookie_jar}) {
-      $_->save() if defined;
-    };
-    return $res;
-  };
+our %EXPORT_TAGS;
+$EXPORT_TAGS{all}=[];
+BEGIN {
+  push(@{$EXPORT_TAGS{all}},@EXPORT_OK);
 }
-# Storage for model configuration
 our %config;
 
 # Get API key

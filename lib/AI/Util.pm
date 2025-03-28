@@ -163,7 +163,12 @@ sub decode_json {
     return shift->suf("sav");
   };
   sub suf {
-    return map { path(shift->stringify.$_) } @_;
+    local($self)=shift;
+    my($suf)=shift;
+    for(@_){
+      $_=path("$_$suf");
+    };
+    @_;
   };
 }
 1;
