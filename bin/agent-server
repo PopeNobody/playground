@@ -35,23 +35,6 @@ while (@ARGV && $ARGV[0] ne '--') {
 }
 
 sub help {
-    print <<HELP;
-Usage: $0 [options]
-
-Start the AI Agent server.
-
-Options:
-  -p PORT          Port to listen on (default: $options{port})
-  -d               Enable debug output
-  --help           Show this help message
-  --version        Show version information
-
-Environment variables:
-  API_MOD          AI model to use ( defaults to \$(id -u)
-  DEBUG            Enable debug output
-  SECURE_MODE      Enable secure mode
-  API_KEY          API key for the selected model
-HELP
     exit(0);
 }
 
@@ -66,10 +49,26 @@ my $playground = AI::Agent->new(
   port => $options{port},
   model => $options{model},
   debug => $options{debug},
-  secure_mode => $options{secure_mode},
+  secure => $options{secure},
 );
 
 $playground->start();
 
 # Keep the server running
 AE::cv->recv;
+__DATA__
+Usage: $0 [options]
+
+Start the AI Agent server.
+
+Options:
+  -p PORT          Port to listen on
+  -d               Enable debug output
+  --help           Show this help message
+  --version        Show version information
+
+Environment variables:
+  API_MOD          AI model to use
+  DEBUG            Enable debug output
+  SECURE_MODE      Enable secure mode
+  API_KEY          API key for the selected model

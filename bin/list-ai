@@ -22,24 +22,14 @@ use Snatcher;
 our(@VERSION) = qw( 0 1 0 );
 use Getopt::WonderBra;
 use AI::Config qw(get_api_mod get_api_ua get_api_url);
+use AI::UserAgent;
 
 die "Session not configured" unless exists(&get_api_ua);
-
-@ARGV = getopt("mdc:f:e",@ARGV);
-my ($delete,$text,$mock) = 0;
-my ($edit,$prompt_file,$conv) = ( 1 );
-sub help {
-  say "usage; $0 [ -f \$prompt_file ] [ -e ]";
+my ($file)=path("etc/models.all.json");
+my ($text)=($file->slurp);
+my ($json)=decode_json($text);
+my (@list)=keys %$json;
+for( (map { uc } @list) ) {
+  ddx($_);
 };
-
-sub version {
-  say "@VERSION";
-};
-my $conv_dir;
-while(($_=shift)ne'--'){
-  if(1){
-    die "bad arg: $_";
-  };
-};
-my ($ua)=get_api_ua;
-ddx( $ua->get(get_api_url) );
+my %env=map { $_  }

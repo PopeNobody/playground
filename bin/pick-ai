@@ -26,7 +26,7 @@ my %xlate = (
 );
 $ai=$xlate{$ai};
 for(keys %ENV) {
-  next unless m{^${ai}_API_(MOD|KEY)$};
+  next unless m{^${ai}_API_(MOD|KEY|URL)$};
   push(@_,$_);
 };
 for(@_){

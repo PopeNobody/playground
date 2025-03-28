@@ -25,6 +25,5 @@ sub run {
   AE::cv->recv;
 }
 sub mk_sock {
-  tcp_server $host, $port, sub { #connect
 };
 1;

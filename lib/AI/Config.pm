@@ -14,7 +14,10 @@ BEGIN {
   push(@{$EXPORT_TAGS{all}},@EXPORT_OK);
 }
 our %config;
-
+our(%urls);
+$urls{chat}="/chat/completions";
+$urls{list}="/model";
+$DB::single=1;
 # Get API key
 sub get_api_key {
   return $config{api_key};
@@ -35,34 +38,37 @@ sub redact {
   wantarray ? @_ : "@_";
 };
 BEGIN {
-  if(defined($ENV{API_MOD}) and defined($ENV{API_KEY})){
-    return unless length($ENV{API_MOD});
-    my ($id) = map { split } qx(id -un);
-    my $model = path("etc/")->child($id.".json");
-    unless(-e $model) {
-      ($model)=split("-",$ENV{API_MOD});
-      say "model=$model";
-      $model="gem" if $model eq "gemini";
-      $model=path("etc/")->child($model.".json");
-    };
-    *config = decode_json($model->slurp);
-    $config{model}=$ENV{API_MOD};
-    $config{dummy}=$config{api_key}=$ENV{API_KEY};
-    delete $ENV{API_KEY} unless $^P;
-    delete $ENV{API_MOD} unless $^P;
-    $config{dummy} =~ s{.}{.}g;
-    die "missing api key" unless defined get_api_key();
-    die "No api_mod" unless defined get_api_mod();
-    $config{ua}=AI::UserAgent->new();
-    $config{ua}->default_header('Authorization' => "Bearer ".get_api_key() );
-    $config{ua}->default_header('Content-Type' => 'application/json');
-    $config{ua}->default_header('user-agent' => 'curl/7.88.1');
-  } else {
+  if($ENV{API_LOCAL}){
     warn  (
       "API_MOD and API_KEY are required for communication\n".
       "entering debgaded mode\n"
-    ) unless $ENV{API_LOCAL};
+    );
+    return;
   };
-}
-1;
+  if(defined($ENV{API_MOD}) and defined($ENV{API_KEY})){
+    return unless length($ENV{API_MOD});
+    my ($api_mod)=$ENV{API_MOD};
+    delete $ENV{API_MOD} unless $^P;
+    say STDERR ppx("mod: $api_mod");
 
+    my ($api_key)=$ENV{API_KEY};
+    delete$ENV{API_KEY} unless $^P;
+    say STDERR ppx("key: $api_key");
+
+    my ($api_cfg)=$api_mod;
+    my ($api_cfg)=map { m{^([^-]+)-(.*)} } $api_cfg;
+    $api_cfg=path("etc/")->child($api_cfg.".json");
+    say STDERR "cfg: $api_cfg exists: ", (-e $api_cfg ? 1 : 0 );
+    *config = decode_json($api_cfg->slurp);
+    say STDERR ppx(\%config);
+    $config{api_key}=$api_key;
+    die "missing api key" unless defined get_api_key();
+    die "No api_mod" unless defined get_api_mod();
+    $config{ua}=AI::UserAgent->new( base=>get_api_url );
+    $config{ua}->default_header('Authorization' => "Bearer ".get_api_key() );
+    $config{ua}->default_header('Content-Type' => 'application/json');
+    $config{ua}->default_header('user-agent' => 'curl/7.88.1');
+  };
+};
+
+1;

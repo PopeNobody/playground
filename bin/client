@@ -3,136 +3,135 @@
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 use lib "lib";
+package g;
+use AI::Util;
+sub AI::Client;
+package AI::Client;
 BEGIN { 
-  open(STDIN,"</dev/tty"); 
-  open(STDOUT,">/dev/tty"); 
-  open(STDERR,">&STDOUT");
   STDOUT->autoflush;
   STDERR->autoflush;
   $ENV{API_KEY}=$ENV{API_MOD}="";
 };
-use AnyEvent::ReadLine::Gnu;
-use AnyEvent::Socket;
-use AnyEvent;
-use AnyEvent::Handle;
-use AI::Conv;
-use AI::Util;
-use autodie;
-use common::sense;
+use AI::Util ( path );
+use AnyEvent ();
+use AnyEvent::Handle ();
+use AnyEvent::ReadLine::Gnu ();
+use AnyEvent::Socket ( tcp_connect );
+use autodie ();
+use common::sense ();
 
 our(@VERSION) = qw( 0 1 0 );
-
-
-{
-  package AI::Client;
-  use AI::Conv;
-  our(@ISA)=qw(AI::Client::Cmd);
-  sub new {
-    my($class)=shift;
-    if(ref($class)){
-      note "constructor called by client";
-      return;
-    };
-    my($self)={@_};
-    $self->{quit} = AE::cv;
-    $self->{wbuf} = $self->{file}->slurp if $self->{file}->existsj
-    $self->{conv} = AI::Conv->new;
-    $self->{file} = 
-    $self->{hand} = new AnyEvent::Handle (
-      fh=>$ai{sock},
-      on_error => sub {
-        local(@_)=@_;
-        note("error: @_");
-      },
-      on_eof => sub {
-        local(@_)=@_;
-        note("eof @_");
-      }
-    );
-    $self->{term} = new AnyEvent::ReadLine::Gnu on_line => sub {
-      my ($line)=@_;
-      $self->line($line);
-    };
-    bless($self,$class);
-    shift->{quit}->recv;
+sub cmd_print {
+  AI::Util::ddx(\@_);
+  shift->{term}->print(@_);
+};
+sub cmd_note {
+  AI::Util::ddx(\@_);
+  shift->{term}->print(@_);
+};
+sub cmd_edit {
+  my($self)=shift;
+  my($file)=$self->{file};
+  my($wbuf)=$self->{wbuf};
+  $file->bak->spew($wbuf);
+  system("$file >/dev/tty 2>&1 </dev/tty");
+  if($?) {
+    $file->rename($file->sav);
+    $file->touch->spew($wbuf);
+  } else {
+    $wbuf=$file->slurp;
   };
 }
-{
-  package AI::Client::Cmd;
-  our(@ISA)=AI::Client;
-  sub new {
-    note("Cannot call constructor on constructed object");
-  };
-  sub edit {
-    my($self)=shift;
-    my($file)=$self->{file};
-    $file->bak->spew($wbuf);
-    my($wbuf)=$self->{wbuf};
-    system("$file >/dev/tty 2>&1 </dev/tty");
-    if($?) {
-      $file->rename($file->sav);
-      $file->touch->spew($wbuf);
+sub send {
+  my($self)=@_;
+  my($file)=$self->{file};
+  my($term)=$self->{term};
+  my($text)=$file->slurp;
+  rename($file,$file->sav);
+  $text=length($text)."\n".$text."\n";
+
+  tcp_connect "walrus", $port{$name}, sub {
+    ($sock)=@_
+      or die "failed to connect to $name";
+    my($hand)=new AnyEvent::Handle(
+      fh=>$sock,
+      on_error=>sub {
+        $self->{term}->print(error=>$_[2]);
+        $_[0]->destroy;
+      },
+      on_eof=>sub {
+        $hand->destroy;
+        $self->response($text);
+        $self->{term}->saw("done");
+      }
+    );
+    $hand->push_write(length($text),"\n",$text);
+    $hand->push_read(line=>sub {
+        local($len)=shift;
+        $hand->push_read(chunk => $len, sub {
+            local($_)=shift;
+            die "want $len have ",length unless $len==length;
+            $self->response($len,$_);
+            $file->sav->remove;
+          }
+        );
+      }
+    )
+  }
+};
+
+sub quit {
+  shift->{quit}->send;
+}
+sub trim {
+  local($_)="@_";
+  s{^\s*}{};
+  s{\s*$}{};
+  $_;
+};
+sub line {
+  my ($self,$line)=@_;
+  my ($sub);
+  for($line) {
+    unless(s{^\s*/\s*}{} and s{\s*$}{}) {
+      $self->{wbuf} .= "$_\n";
+      $self->{file}->spew(trim($self->{wbuf}));
+      return;
+    };
+    if(defined($sub=$self->can($_))){
+      $self->$sub($_);
     } else {
-      $wbuf=$file->slurp;
-    };
-  }
-  sub send {
-    my($self)=shift;
-    @_=$file->lines;
-    for( "/recv ".scalar(@_)." lines\n" ) {
-      $rl->print($_);
-      $ai{hand}->push_write( $_ );
+      $self->note("bad command: ($_)");
+      return;
     };
   };
-  sub text {
-    my($self,$text)=shift;
-    $self->{wbuf} .= "$_\n";
-    $self->{file}->spew($text);
+}
+sub recv {
+  shift->{quit}->recv;
+};
+package AI::Client::Impl;
+our(@ISA)=qw(AI::Client);
+use Path::Tiny;
+use AI::Util;
+
+sub new {
+  my($class)=qw(AI::Client);;
+  my($self)={@_};
+  bless($self,$class);
+  if(ref($class)){
+    die "constructor called on client";
   };
-  sub quit {
-    shift->{quit}->send;
-  }
-  sub line {
-    my ($self,$rl,$text)=@_:
-    my ($sub);
-    for($text) {
-      if(s{^\s*/\s*}{} and s{\s*$}{}) {
-        if(defined($sub=$self->can($_))){
-          $self->$sub(split);
-        } else {
-          note("bad command: ($_)");
-          return;
-        };
-      } else {
-        $self->text($_);
-      };
-    };
-  }
+  $self->{quit} = AE::cv;
+  $self->{file} = path("prompt.txt");
+  $self->{wbuf} = $self->{file}->slurp if $self->{file}->exists;
+  $self->{term} = new AnyEvent::ReadLine::Gnu(
+    prompt=>"MyFancyPrompt> ",
+    on_line => sub {
+      my ($line)=@_;
+      $self->line($line);
+    }
+  );
+  my $rl=$self->{term};
+  bless($self,$class);
 };
-my (@ai) = qw(gpt grok gem claude);
-@_ = map { split } map { $_,qx(id -u $_) } map { split } @ai;
-
-while(@_) {
-  push(@todo,\%ai);
-  my($sock)=tcp_connect $ai{host}, $ai{port};
-  last if $sock;
-};
-die("unable to connect to any ai") unless defined $ai{sock};
-
-my ($client)=Client->new;
-sub note {
-  local(@_)=@_;
-  chomp(@_);
-  for(@_) {
-    if(defined($rl)){
-      $rl->print("note: => $_");
-    } else {
-      say STDERR "note: => $_";
-    };
-  }
-};
-
-
-my ($rw, $rbuf, $tw);
-
-
+new()->recv;

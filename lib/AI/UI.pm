@@ -6,7 +6,7 @@ use AI::Util;
 use subs qw( run_script );
 our($user,$file,$conv,$res,$req)=(1, "nobody");
 our(@EXPORT)=qw(
-  transact edit set_conv $conv $file $edit run_script may_edit
+  transact edit set_conv $conv $file run_script may_edit
 );
 
 sub edit_and_transact {
@@ -53,11 +53,7 @@ sub may_edit($) {
   my($file)=shift;
   # either edit the file or dump it so the user can
   # have a look.
-  if($edit) {
-    edit($file);
-  } else {
-    say($file->slurp);
-  };
+  edit($file);
 };
 sub run_script {
   my ($names)=path($conv->pair_name("script"));
@@ -81,9 +77,7 @@ sub run_script {
     $script="./$script";
   };
   system("bin/capture -f $capture $script");
-  if($edit) {
-    edit($capture);  
-  };
+  edit($capture);  
   my ($msg) = AI::Msg->new("system","output",$capture->slurp);
   $conv->add($msg);
 };
