@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+# vim: ts = 2 sw=2 ft=perl
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+  if 0;
+$|++;
+use lib '/usr/local/share/perl/5.36.0';
+use lib 'lib';
+use Curses::UI::TextViewer;
+use Curses::UI::AnyEvent;
+use Nobody::Util;
+use autodie;
+use common::sense;
+our(@VERSION) = qw( 0 1 0 );
+our(@ISA) = qw(Curses::UI::AnyEvent);
+my ($cui, $win, $clock, $spring, $tv );
+$cui = Curses::UI::AnyEvent->new(-color_support => 1);
+$win = $cui->add(
+  win =>   'Window',
+  -border =>   1,
+  bfg =>   'red'
+);
+$clock =$win->add(
+  'clock','TextViewer',
+  -text => ''
+);
+$tv =$win->add(
+  tv =>  'TextVeiwer', 
+  -text =>  "This space intentionally left blank"
+);
+
+$tv->focus();
+$cui->mainloop();
