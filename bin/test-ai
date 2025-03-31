@@ -3,6 +3,7 @@
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
+use lib 'lib';
 use FindBin qw($Bin);
 use FindLib;
 use common::sense;
@@ -72,17 +73,6 @@ do {
   }
 } while $res->{type} ne "text/plain";
 
-#    open(STDERR,"|cat >&2");
-#    open(STDOUT,">&STDERR");
-#    BEGIN {
-#      for(map { "$_" } $Bin) {
-#        s{/s?bin$}{};
-#        $FindBin::prefix="$_";
-#      };    
-#    };
-#    BEGIN {
-#      use lib $FindBin::prefix."/lib";
-#    };
 
 
 1;
