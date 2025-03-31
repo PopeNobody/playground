@@ -57,9 +57,12 @@ BEGIN {
     my ($api_cfg)=map { m{^([^-]+)-(.*)} } $api_cfg;
     s{gemini}{gem}g for $api_cfg;
 
+    my ($port) = map { split } qx( id -u $api_cfg );
+    ddx([$port]);
     $api_cfg=path("etc/")->child($api_cfg.".json");
     *config = decode_json($api_cfg->slurp);
     $config{api_key}=$api_key;
+    ddx(\%config);
     die "missing api key" unless defined get_api_key();
     die "No api_mod" unless defined get_api_mod();
     $config{ua}=AI::UserAgent->new( base=>get_api_url );

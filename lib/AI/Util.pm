@@ -165,10 +165,9 @@ sub decode_json {
   sub suf {
     local($self)=shift;
     my($suf)=shift;
-    for(@_){
-      $_=path("$_$suf");
+    for(shift) {
+      return path("$_$suf");
     };
-    @_;
   };
 }
 1;
