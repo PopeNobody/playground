@@ -17,7 +17,6 @@ our %config;
 our(%urls);
 $urls{chat}="/chat/completions";
 $urls{list}="/model";
-$DB::single=1;
 # Get API key
 sub get_api_key {
   return $config{api_key};

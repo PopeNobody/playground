@@ -1,4 +1,4 @@
-#!/usr/bin/perl -d
+#!/usr/bin/perl 
 use strict;
 use warnings;
 use common::sense;
@@ -39,7 +39,7 @@ INIT {
     @ARGV=map { split } "@ARGV";
   };
   unless(grep { $_ eq '--' } @ARGV){
-    print STDERR "warning: no --\n";
+    die "usage: capture [ args ] -- <cmd>";
   };
   @ARGV = getopt("zqf:p",@ARGV);
   while(($_=shift(@ARGV))ne'--'){
@@ -108,9 +108,14 @@ sub like_path($){
   };
 };
 sub start_child() {
+  my $pid=fork;
+  return $pid if $pid;
   open($str[0][0],"<&".fileno($str[0][1]->reader));
   open($str[1][1],">&".fileno($str[1][0]->writer));
   open($str[2][1],">&".fileno($str[2][0]->writer));
+  $!=0;
+  exec(@ARGV);
+  die "exec:@ARGV:$!";
 }
 my $ip;
 sub decode {
@@ -123,7 +128,9 @@ sub decode {
 };
 sub main() {
   local($DB::inhibit_exit)=0;
+  my $daddy=$$;
   my $pid=start_child;
+  die "escaped! " unless $$==$daddy;
   my $exit;
   my $code;
   $SIG{CHLD}=sub { 

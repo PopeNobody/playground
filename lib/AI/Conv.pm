@@ -71,7 +71,8 @@ sub new {
   good_path($dir);
   die "dir should be Path::Tiny"  unless blessed($dir)
     and $dir->isa('Path::Tiny');
-  $dir=$dir->absolute->mkdir;
+  $dir=$dir->absolute;
+  $dir->mkdir unless -d $dir;
   $file=$dir->child("conv.jwrap");
   my $self={
     dir=>$dir,
