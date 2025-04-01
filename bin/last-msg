@@ -1,0 +1,14 @@
+#!/usr/bin/perl
+# vim: ts=2 sw=2 ft=perl
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+  if 0;
+$|++;
+use lib 'lib';
+use common::sense;
+use autodie;
+use Nobody::Util;
+use AI::Conv;
+our(@VERSION) = qw( 0 1 0 );
+my $conv = AI::Conv->new( path("dat/conv-0000/") );
+my $msg = $conv->last;
+say STDERR $msg->{text};
