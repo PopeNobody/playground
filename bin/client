@@ -77,7 +77,7 @@ sub cmd_send {
     );
     my ($len);
     $len = length($text);
-    $hand->push_write($len,"\n",$text);
+    $hand->push_write("$len\n$text\n");
     $hand->push_read(line=>sub {
         ($len)=shift;
         $hand->push_read(chunk => $len, sub {
@@ -114,22 +114,23 @@ sub hist_next {
 sub line {
   my ($self,$text)=@_;
   my ($sub);
+  $self->{file}->touchpath;
   for($text) {
-    unless(s{^\s*/\s*}{cmd_} and s{\s*$}{}) {
-      $self->{file}->touchpath;
+    if(s{^\s*/\s*}{cmd_} and s{\s*$}{}) {
+      if(defined($sub=$self->can($_))){
+        $self->$sub($_);
+      } else {
+        $self->{term}->say("bad command: ($_)");
+        return;
+      };
+    } else {
       $self->{file}->edit(sub
         {
           $_=$_."\n$text";
           $text=$_;
         }
       );
-    };
-    if(defined($sub=$self->can($_))){
-      $self->$sub($_);
-    } else {
-      $self->{term}->say("bad command: ($_)");
-      return;
-    };
+    }
     $self->{file}->spew(trim($self->{file}->slurp));
   };
 }

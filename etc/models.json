@@ -1,32 +1,4 @@
 {
-  "gem" : {
-    "name" : "Google Gemini",
-    "auth" : {
-      "type" : "bearer",
-      "env_key" : "GEM_API_KEY"
-    },
-    "handle" : "gem",
-    "url" : {
-      "home" : "https://gemini.google.com",
-      "doc" : "https://ai.google.dev/gemini-api/docs",
-      "api" : "https://generativelanguage.googleapis.com/v1beta/openai"
-    },
-    "model" : "gemini-1.5-flash"
-  },
-  "gpt" : {
-    "name" : "ChatGPT",
-    "handle" : "gpt",
-    "url" : {
-      "api" : "https://api.openai.com/v1",
-      "home" : "https://chatgpt.com/",
-      "doc" : "https://platform.openai.com/docs"
-    },
-    "model" : "gpt-4o",
-    "auth" : {
-      "type" : "bearer",
-      "env_key" : "GPT_API_KEY"
-    }
-  },
   "grok" : {
     "auth" : {
       "type" : "bearer",
@@ -38,20 +10,5 @@
       "api" : "https://api.x.ai/v1"
     },
     "name" : "Grok Xai"
-  },
-  "claude" : {
-    "auth" : {
-      "type" : "bearer",
-      "env_key" : "CLAUDE_API_KEY"
-    },
-    "model" : 
-
-    "handle" : "claude",
-    "url" : {
-      "api" : "https://api.anthropic.com/v1",
-      "doc" : "https://docs.anthropic.com/en/api/", 
-      "home" : "https://claude.ai"
-    },
-    "name" : "Claud Anthropic"
   }
 }

@@ -102,19 +102,20 @@ sub new {
 
   return $self->check();
 }
-my $first=path("dat/conv0000");
+my $first=path("dat/conv-0000");
 
 sub next_dir {
   my ($self)=shift;
-  my ($dir,@sub,$re)=path("dat");
-  if($dir->exists and (@sub=reverse sort $dir->children) ) {
-    for( shift(@sub)->stringify ) {
-      s{^[^0-9]+}{};
-      return path(sprintf "dat/conv-%04d",++$_);
-    };
-  } else {
-    return $first;
-  };
+  my ($dir,@sub,$re)=path("dat/conv-0000");
+  return $dir;
+#      if($dir->exists and (@sub=reverse sort $dir->children) ) {
+#        for( shift(@sub)->stringify ) {
+#          s{^[^0-9]+}{};
+#          return path(sprintf "dat/conv-%04d",++$_);
+#        };
+#      } else {
+#        return $first;
+#      };
 };
 sub pair_name {
   my ($self)=shift;

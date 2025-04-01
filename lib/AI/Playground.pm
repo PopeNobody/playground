@@ -19,9 +19,15 @@ sub new {
   my ($class)=shift;
   my ($self)={ @_ };
   bless($self,$class);
-  $self->{sock}//=$self->mk_sock;
   $self->{conv}//=AI::Conv->new;
-  bless($self,$class);
+  $self->{host}//=undef;
+  {
+    local(@_) = map { split } qx( id -u );
+    $self->{port} =shift;
+  };
+  say STDERR ppx( { self=>\$self } );
+  $self->{sock}=$self->mk_sock;
+  $self;
 };
 sub run {
   AE::cv->recv;
