@@ -2,8 +2,11 @@
 # vim: ts=2 sw=2 ft=perl
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
+use lib 'lib';
+use AI::Config;
+$DB::single++ if ${PLAYGROUND_STOP_DEBUG};
 $|++;
 use lib 'lib';
 use AI::Playground;
 our(@VERSION)=qw(0 1 0);
-my ($pg)=AI::Playground->new->run;
+AI::Playground->new->run;
