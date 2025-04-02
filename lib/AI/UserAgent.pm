@@ -4,16 +4,11 @@ use parent 'LWP::UserAgent';
 use AI::Util;
 sub new {
   my ($class,%args)=@_;
-  my ($base)=delete $args{base};
-  my ($urls)=delete $args{urls};
   my ($self)=$class->SUPER::new(%args);
   my (%data) = (
     class=>$class,
-    base=>$base,
-    urls=>$urls,
     self=>"$self",
   );
-  ddx(\%data);
   die "no base" unless defined $base;
   die "no urls" unless defined $urls;
   die "no chat" unless defined $urls->{chat};

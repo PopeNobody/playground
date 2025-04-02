@@ -4,9 +4,10 @@ eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
 package AI::Playground;
+use lib 'lib';
 use common::sense;
 use autodie;
-use AI::Config qw( get_loc_host get_loc_port );
+use AI::Config;
 use AI::Conv;
 use AI::Util;
 our(@VERSION) = qw( 0 1 0 );

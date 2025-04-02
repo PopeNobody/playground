@@ -10,19 +10,17 @@ use warnings;
 use AI::Config qw( get_api_ua get_api_mod get_api_url);
 use AI::Msg;
 use AI::Util;
+use Carp qw(confess croak carp cluck);
+use Data::Dumper;
+use HTTP::Cookies::Netscape;
+use LWP::UserAgent;
+use Path::Tiny;
+use Scalar::Util qw(blessed);
+use Scalar::Util qw(refaddr);
 use Scalar::Util;
 use Storable qw(nstore retrieve);
-use Scalar::Util qw(blessed);
-use Path::Tiny;
-use Data::Dumper;
-use Carp qw(confess croak carp cluck);
 use common::sense;
-use LWP::UserAgent;
-use HTTP::Cookies::Netscape;
-use Scalar::Util qw(refaddr);
 use overload '""' => sub { confess "don't stringify me bro!"; };
-
-ddx( { key=>get_api_key, mod=>get_api_mod, url=>get_api_url } );
 our(%jar,$jar);
 
 sub check {
@@ -232,7 +230,7 @@ sub as_json {
 
   return encode_json({
     messages => \@standard_msgs,
-    model => get_api_mod(),
+    model => AI::Config->get("model")
   });
 }
 sub file {
