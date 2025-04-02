@@ -1,32 +1,12 @@
-#!/usr/bin/perl
-
-package IO::File;
-sub dbg {};
-
-package main;
-*dbg=*IO::FILE::dbg;
-
-package AI::Msg;
-*dbg=*IO::FILE::dbg;
-
 package AI::Util;
-*dbg=*IO::FILE::dbg;
-
-use FindBin qw($Bin);
 use lib "lib";
-our($Pre);
-BEGIN {
-  for(map { "$_" } $Bin){
-    s{/(bin|sbin|t)$}{};
-    $Pre="$_";
-  };
-};
 use AI::TextProc;
 use Carp qw(confess);
-use Path::Tiny;
-use POSIX qw(strftime mktime );
-use JSON::PP;
 use Data::Dumper;
+use FindBin qw($Bin);
+use JSON::PP;
+use POSIX qw(strftime mktime );
+use Path::Tiny;
 require Exporter;
 our(@ISA)=qw(Exporter);
 our(@EXPORT)=qw( 

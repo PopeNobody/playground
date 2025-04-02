@@ -1,13 +1,11 @@
-#!/usr/bin/perl
-# vim: ts=2 sw=2 ft=perl
-eval 'exec perl -x -wS $0 ${1+"$@"}'
-  if 0;
-$|++;
 package AI::Playground;
+use lib 'lib';
+use AI::Config;
 use common::sense;
 use autodie;
 use AI::Config qw( get_loc_host get_loc_port );
 use AI::Util;
+$|++;
 <<<<<<< HEAD
 use AI::Config qw(:all);
 ||||||| parent of 86657c7 (xc)

@@ -1,8 +1,9 @@
 package AI::UI;
-use base "Exporter";
 use lib 'lib';
-use common::sense;
+use AI::Config;
 use AI::Util;
+use base "Exporter";
+use common::sense;
 use subs qw( run_script );
 our($user,$file,$conv,$res,$req)=(1, "nobody");
 our(@EXPORT)=qw(

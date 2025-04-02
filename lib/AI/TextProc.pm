@@ -1,20 +1,16 @@
 package AI::TextProc;
-use FindBin;
-our($prefix);
-use Path::Tiny;
-BEGIN {
-  use lib "$ENV{PWD}";
-};
-use common::sense;
+use lib 'lib';
+use AI::Config;
 use AI::Util;
-use Path::Tiny;
-use Data::Dumper;
 use Carp qw( confess carp croak cluck );
-use common::sense;
+use Data::Dumper;
+use FindBin;
+use Path::Tiny;
 use Scalar::Util qw(blessed);
 use Text::Wrap qw(wrap $columns );
+use common::sense;
 $columns=80;
-our(@keys);
+our($prefix,@keys);
 sub format {
   local(@_)=@_;
   my $i=0;

@@ -1,5 +1,6 @@
 package AI::UserAgent;
 use lib 'lib';
+use AI::Config;
 use parent 'LWP::UserAgent';
 use AI::Util;
 sub new {

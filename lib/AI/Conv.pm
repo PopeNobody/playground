@@ -1,9 +1,4 @@
-package IO::File;
-sub dbg {
-};
 package AI::Conv;
-*dbg=*IO::File::dbg;
-
 use lib "lib";
 use strict;
 use warnings;
@@ -89,13 +84,11 @@ sub new {
       "File $file does not exist, creating new conversation."
     ) unless defined $ENV{API_QUIET};;
     my $path=path("etc/system-message.md");
-    dbg( { path=>$path } );
     my $msg = AI::Msg->new({
       role => "system",
       name => "system",
       text => $path
     });
-    dbg( { "ref(\$msg)"=>ref($msg) } );
     $self->add($msg);
   }
 

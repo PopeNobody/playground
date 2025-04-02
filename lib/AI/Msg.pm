@@ -1,15 +1,15 @@
 package AI::Msg;
 use lib 'lib';
-
-use strict;
-use warnings;
+use AI::Config;
 use AI::Util;
-use Data::Dumper;
 use Carp qw(confess carp croak cluck);
-use common::sense;
+use Data::Dumper;
+use MIME::Types;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(time);
-use MIME::Types;
+use common::sense;
+use strict;
+use warnings;
 
 use overload '""' => sub { confess "don't stringify me bro!"; };
 

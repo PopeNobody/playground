@@ -1,15 +1,10 @@
-#!/usr/bin/perl
-# vim: ts=2 sw=2 ft=perl
-eval 'exec perl -x -wS $0 ${1+"$@"}'
-  if 0;
-$|++;
 package AI::Playground;
 use lib 'lib';
-use common::sense;
-use autodie;
 use AI::Config;
 use AI::Conv;
 use AI::Util;
+use autodie;
+use common::sense;
 our(@VERSION) = qw( 0 1 0 );
 
 our(%self);
