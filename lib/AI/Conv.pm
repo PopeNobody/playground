@@ -292,7 +292,6 @@ sub transact {
   confess "in degraded mode -- cannot call out " unless defined($ua);
 
   $ua->cookie_jar($self->jar);
-  $DB::single=1;
   my $res = get_api_ua()->request($req);
   $self->jar->save;
   # Store response for debugging
