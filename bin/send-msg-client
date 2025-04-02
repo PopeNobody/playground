@@ -1,0 +1,165 @@
+#!/usr/bin/perl
+
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+  if 0;
+use lib "lib";
+package AnyEvent::ReadLine::Gnu;
+sub say {
+  my ($self)=shift;
+  $self->print(@_, "\n");
+};
+package AI::Client;
+use AI::Util ( ppx );
+use AnyEvent::Handle ();
+use AnyEvent::ReadLine::Gnu  ();
+use AnyEvent::Socket qw( tcp_connect );
+use AnyEvent ();
+use Path::Tiny qw(path);
+use autodie ();
+use common::sense ();
+BEGIN { 
+  STDOUT->autoflush;
+  STDERR->autoflush;
+  $ENV{API_KEY}=$ENV{API_MOD}="";
+};
+our(%port)=(
+  grok=>4003,
+  gem=>4002,
+  gpt=>4001,
+  claude=>4003
+);
+our(@VERSION) = qw( 0 1 0 );
+sub print {
+  ddx(\@_);
+  shift->{term}->print(@_);
+};
+sub cmd_print {
+};
+sub cmd_edit {
+  my($self)=shift;
+  my($file)=$self->{file};
+  $file->edit(sub
+    {
+      my ($temp)=path("temp-file.txt");
+      my ($text)=$_;
+      $temp->spew($_);
+      system("vi temp-file.txt >/dev/tty </dev/tty 2>&1");
+      if($?) {
+        $temp->copy("temp-save.txt");
+        $_=$text;
+      } else {
+        $_=$temp->slurp();
+      };
+      $temp->remove();
+    }
+  );
+}
+sub cmd_send {
+  my($self)=@_;
+  my($file)=$self->{file};
+  my($term)=$self->{term};
+  my($text)=$file->slurp; 
+  my($name)="grok";
+  $text=length($text)."\n".$text."\n";
+  my($port)=$port{$name};
+  $term->say(ppx([$port]));
+  die "no port for $name" unless defined $port;
+  tcp_connect "walrus", $port, sub {
+    my($sock,$hand);
+    ($sock)=@_
+      or die "failed to connect to $name";
+    $hand=new AnyEvent::Handle(
+      fh=>$sock,
+      on_error=>sub {
+        $self->{term}->print(error=>$_[2]);
+        $_[0]->destroy;
+      },
+      on_eof=>sub {
+        $hand->destroy;
+        $self->response($text);
+        $self->{term}->say("done");
+      }
+    );
+    my ($len);
+    $len = length($text);
+    $hand->push_write("$len\n$text\n");
+    $hand->push_read(line=>sub {
+        ($len)=shift;
+        $hand->push_read(chunk => $len, sub {
+            local($_)=shift;
+            die "want $len have ",length unless $len==length;
+            $self->response($len,$_);
+            $file->sav->remove;
+          }
+        );
+      }
+    )
+  }
+};
+
+sub cmd_quit {
+  shift->{quit}->send;
+}
+sub trim {
+  local($_)="@_";
+  s{^\s*}{};
+  s{\s*$}{};
+  $_;
+};
+sub hist_next {
+  my($self)=shift;
+  $self->{next}//=0;
+  while(1) {
+    die "10,000 prompts?" if $file->{next}>9999;
+    my ($file)=path(sprintf("hist/prompt%04d.txt",$self->{next}++));
+    next if $file->exists;
+    return $file->touchpath;
+  };
+};
+sub line {
+  my ($self,$text)=@_;
+  my ($sub);
+  $self->{file}->touchpath;
+  for($text) {
+    if(s{^\s*/\s*}{cmd_} and s{\s*$}{}) {
+      if(defined($sub=$self->can($_))){
+        $self->$sub($_);
+      } else {
+        $self->{term}->say("bad command: ($_)");
+        return;
+      };
+    } else {
+      $self->{file}->edit(sub
+        {
+          $_=$_."\n$text";
+          $text=$_;
+        }
+      );
+    }
+    $self->{file}->spew(trim($self->{file}->slurp));
+  };
+}
+sub recv {
+  shift->{quit}->recv;
+};
+
+sub new {
+  my($class)=shift;
+  my($self)={@_};
+  bless($self,$class);
+  if(ref($class)){
+    die "constructor called on client";
+  };
+  $self->{quit} = AE::cv;
+  $self->{file} = path("prompt.txt");
+  $self->{term} = new AnyEvent::ReadLine::Gnu(
+    prompt=>"MyFancyPrompt> ",
+    on_line => sub {
+      my ($line)=@_;
+      $self->line($line);
+      $self->{term}->say($self->{file}->slurp);
+    }
+  );
+  bless($self,$class);
+};
+AI::Client->new->recv;
