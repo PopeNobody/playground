@@ -37,7 +37,6 @@ sub list_models {
   ddx($res->content);
 };
 sub request {
-  $DB::single;
   my $self=shift;
   for($self->{_cookie_jar}) {
     $_->load() if defined;
