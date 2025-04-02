@@ -4,7 +4,8 @@ use common::sense;
 use FindLib qw(AI::Util);
 use Carp qw(verbose);
 use autodie;
-use AI::Config qw(get_api_mod get_api_ua);
+our(%cfg);
+use AI::Config qw(%cfg, get_api_mod get_api_ua);
 use AI::Conv;
 use AI::UI;
 use AI::Util;
@@ -35,8 +36,8 @@ sub new(@) {
   };
   print "$self{model}";
   note "creating  tcp server\n";
-  $self{serv} //= tcp_server $self{host}, $self{port}, sub {
-    my ($fh, $host, $port) = @_;
+  $self{serv} //= tcp_server undef, , sub {
+    my ($fh) = @_;
     note("got connection: @_\n");
     my $hand;
     my $num;

@@ -136,7 +136,6 @@ sub serial_maker(%) {
 our ($json) = JSON::PP->new->ascii->pretty->allow_nonref->convert_blessed;
 sub encode_json ($);
 sub encode_json($) {
-  my @copy=@_;
   local($_);
   eval {
     ($_)=$json->encode(@_);
@@ -146,7 +145,6 @@ sub encode_json($) {
   die join("\n\n",$@,pp(@copy));
 };
 sub decode_json {
-  my @copy=@_;
   local($_);
   eval {
     ($_)=$json->decode(@_);

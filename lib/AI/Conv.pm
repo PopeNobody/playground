@@ -21,6 +21,7 @@ use AI::Config qw( get_api_key get_api_ua get_api_mod get_api_url);
 use Scalar::Util qw(refaddr);
 use overload '""' => sub { confess "don't stringify me bro!"; };
 
+ddx( { key=>get_api_key, mod=>get_api_mod, url=>get_api_url } );
 our(%jar,$jar);
 
 sub check {

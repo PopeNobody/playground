@@ -7,11 +7,8 @@ package AI::Playground;
 use common::sense;
 use autodie;
 use AI::Util;
-use Path::Tiny;
 use AI::Config qw(:all);
 use AI::Conv;
-use AnyEvent::Socket;;
-use AnyEvent::Handle;;
 our(@VERSION) = qw( 0 1 0 );
 
 our(%self);
@@ -19,10 +16,6 @@ sub new {
   my ($class)=shift;
   my ($self)={ @_ };
   bless($self,$class);
-  $self->{conv}//=AI::Conv->new;
-  $self->{host}//=undef;
-  ($self->{port})//=map { split } qx( id -u );
-  $self->{sock}=$self->mk_sock;
   $self;
 };
 sub run {

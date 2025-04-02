@@ -22,7 +22,12 @@ BEGIN {
   STDERR->autoflush;
   $ENV{API_KEY}=$ENV{API_MOD}="";
 };
-our(%port)=(grok=>4003);
+our(%port)=(
+  grok=>4003,
+  gem=>4002,
+  gpt=>4001,
+  claude=>4003
+);
 our(@VERSION) = qw( 0 1 0 );
 sub print {
   ddx(\@_);

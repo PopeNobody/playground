@@ -7,5 +7,6 @@
     "doc" : "https://platform.openai.com/docs"
   },
   "model" : "gpt-4o",
-  "type" : "bearer"
+  "type" : "bearer", 
+  "port" : "4001" 
 }

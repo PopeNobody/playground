@@ -2,20 +2,29 @@
 # vim: ts=2 sw=2 ft=perl
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
-
-
-
-$|++;
+  
 use lib "lib";
-use AI::Playground;
 use common::sense;
 use autodie;
-use AI::Util;
-use Path::Tiny;
-use Getopt::WonderBra;
-use Data::Dumper;
+
+BEGIN {
+  use AnyEvent;
+  use AE;
+  use AnyEvent::Socket;
+  use AnyEvent::Handle;
+  use Path::Tiny;
+  use Data::Dumper;
+}
+$|++;
 our(@VERSION)=qw(0 1 0);
 
 
+use AI::Playground;
+use AI::Util;
 my ($pg)=AI::Playground->new;
-$pg->run();
+my($pid,$kid);
+if($pid=fork){
+  do {
+    $kid=waitpid(0,$);
+    } while9
+    $pg->run();
