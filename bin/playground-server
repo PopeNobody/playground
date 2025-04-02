@@ -4,19 +4,6 @@ eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
 use lib 'lib';
-use AE;
-use AI::Config;
 use AI::Playground;
-use AI::Util;
-use AnyEvent::Handle;
-use AnyEvent::Socket;
-use AnyEvent;
-use Data::Dumper;
-use Path::Tiny;
-use autodie;
-use common::sense;
 our(@VERSION)=qw(0 1 0);
-
-
-my ($pg)=AI::Playground->new;
-$pg->run();
+my ($pg)=AI::Playground->new->run;
