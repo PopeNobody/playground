@@ -3,7 +3,7 @@
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
-
+use lib 'lib';
 use AE;
 use AI::Config;
 use AI::Playground;
@@ -15,7 +15,6 @@ use Data::Dumper;
 use Path::Tiny;
 use autodie;
 use common::sense;
-use lib "lib";
 our(@VERSION)=qw(0 1 0);
 
 
