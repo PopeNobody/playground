@@ -1,18 +1,22 @@
 package AI::UserAgent;
+use lib 'lib';
 use parent 'LWP::UserAgent';
-our(%path);
-
-our($self);
+use AI::Util;
 sub new {
-  return $self if $self;
-  unless($self){
-    my ($class,%args)=@_;
-    my ($base)=$args{base};
-    my ($urls)=$args{urls};
-    $self=$class->SUPER::new(%args);
-    $self->{base} = ${base};
-    $self->{urls} = ${urls};
-  };
+  my ($class,%args)=@_;
+  my ($base)=delete $args{base};
+  my ($urls)=delete $args{urls};
+  my ($self)=$class->SUPER::new(%args);
+  my (%data) = (
+    class=>$class,
+    base=>$base,
+    urls=>$urls,
+    self=>"$self",
+  );
+  ddx(\%data);
+  die "no base" unless defined $base;
+  die "no urls" unless defined $urls;
+  die "no chat" unless defined $urls->{chat};
   $self;
 };
 sub base {
@@ -33,6 +37,7 @@ sub list_models {
   ddx($res->content);
 };
 sub request {
+  $DB::single;
   my $self=shift;
   for($self->{_cookie_jar}) {
     $_->load() if defined;
@@ -44,5 +49,4 @@ sub request {
   };
   return $res;
 };
-
 1;

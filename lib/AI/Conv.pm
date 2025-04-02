@@ -7,8 +7,10 @@ package AI::Conv;
 use lib "lib";
 use strict;
 use warnings;
+use AI::Config qw( get_api_ua get_api_mod get_api_url);
 use AI::Msg;
 use AI::Util;
+use Scalar::Util;
 use Storable qw(nstore retrieve);
 use Scalar::Util qw(blessed);
 use Path::Tiny;
@@ -17,7 +19,6 @@ use Carp qw(confess croak carp cluck);
 use common::sense;
 use LWP::UserAgent;
 use HTTP::Cookies::Netscape;
-use AI::Config qw( get_api_key get_api_ua get_api_mod get_api_url);
 use Scalar::Util qw(refaddr);
 use overload '""' => sub { confess "don't stringify me bro!"; };
 
@@ -68,7 +69,6 @@ sub new {
   my ($class, $dir, $file) = ( shift, shift);
   ($class) = ( ref($class) || $class );
   $dir//=$class->next_dir;
-  ddx($dir);
   good_path($dir);
   die "dir should be Path::Tiny"  unless blessed($dir)
     and $dir->isa('Path::Tiny');
@@ -98,7 +98,6 @@ sub new {
       text => $path
     });
     dbg( { "ref(\$msg)"=>ref($msg) } );
-    $DB::single=1;
     $self->add($msg);
   }
 
@@ -134,7 +133,6 @@ sub pair_name {
   };
   return $suf_pair;
 };
-use Scalar::Util;
 sub jar {
   my ($self)=shift;
   my ($addr) = refaddr($self);
@@ -184,7 +182,6 @@ sub load_jwrap {
     die "Failed to parse JSON from $file: $@ ($json)";
   }
 
-  # Handle special case for a single message
   if (!ref($data) eq 'ARRAY') {
     $data = [$data];
   }
@@ -292,11 +289,10 @@ sub transact {
   path($pair->[0])->spew($req_disp);
   my $ua = get_api_ua();
 
-
   confess "in degraded mode -- cannot call out " unless defined($ua);
 
-
   $ua->cookie_jar($self->jar);
+  $DB::single=1;
   my $res = get_api_ua()->request($req);
   $self->jar->save;
   # Store response for debugging

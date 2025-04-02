@@ -19,7 +19,6 @@ BEGIN {
   @optional_keys = qw(type timestamp);
 };
 
-# Create a single MIME::Types instance to be reused
 our $MIME_TYPES = MIME::Types->new();
 our %INTERPRETER_MAP;
 

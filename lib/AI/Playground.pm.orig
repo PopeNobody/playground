@@ -7,8 +7,15 @@ package AI::Playground;
 use common::sense;
 use autodie;
 use AI::Config qw( get_loc_host get_loc_port );
-use AI::Conv;
 use AI::Util;
+<<<<<<< HEAD
+use AI::Config qw(:all);
+||||||| parent of 86657c7 (xc)
+use Path::Tiny;
+use AI::Config qw(:all);
+=======
+>>>>>>> 86657c7 (xc)
+use AI::Conv;
 our(@VERSION) = qw( 0 1 0 );
 
 our(%self);
@@ -16,12 +23,16 @@ sub new {
   my ($class)=shift;
   my ($self)={ @_ };
   bless($self,$class);
+<<<<<<< HEAD
+||||||| parent of 86657c7 (xc)
   $self->{conv}//=AI::Conv->new;
   $self->{host}//=undef;
   ($self->{port})//=map { split } qx( id -u );
   $self->{sock}=$self->mk_sock;
+=======
   $self->{conv}//=AI::Conv->new;
   $self->{sock}//=$self->mk_sock;
+>>>>>>> 86657c7 (xc)
   $self;
 };
 sub run {

@@ -296,8 +296,6 @@ sub deparse {
 #  use Carp;
 #  sub test_date(;$) {
 #    $,=" ";
-#    $DB::single=1;
-#    $DB::single=1;
 #    my $time=time;
 #    say $time;
 #    my (@gm);
