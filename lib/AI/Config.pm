@@ -1,62 +1,81 @@
 package AI::Config;
-use common::sense;
-use Exporter 'import';
 use lib 'lib';
+use Exporter qw(import);
+our(@ISA)=qx(Exporter);
+our(@EXPORT_OK)=(qw(
+  get_api_info get_api_ua get_api_mod get_api_url
+  get_loc_host get_loc_port
+  )
+);
+use common::sense;
+use Time::HiRes qw( time sleep );
 use AI::Util;
 use AI::UserAgent;
-
-our @EXPORT_OK = qw(
-  get_api_info get_api_key get_api_ua get_api_mod get_api_url
-);
-our %EXPORT_TAGS;
-$EXPORT_TAGS{all}=[];
-BEGIN {
-  push(@{$EXPORT_TAGS{all}},@EXPORT_OK);
-}
-our %config;
-BEGIN {
-  unless(defined($ENV{API_MOD}) and defined($ENV{API_KEY})){
-    die "KEY and MOD required"
-  };
-  unless(length($ENV{API_MOD})) {
-    return;
-  };
-  $config{api_key}=$ENV{API_KEY};
-  delete $ENV{API_KEY} unless $^P;
-  $config{api_mod}=$ENV{API_MOD};
-  delete $ENV{API_MOD} unless $^P;
-  for(map{"$_"}$config{api_mod}) {
-    s{-.*$}{};
-    s{gemini}{gem};
-    my(%cfg)=%{decode_json(path("etc/$_.json")->slurp)};
-    for(keys %cfg){
-      $config{$_}//=$cfg{$_};
-    };
-  };
-  my($ua)=AI::UserAgent->new( base=>$config{url} );
-  $ua->default_header('Authorization' => "Bearer $config{api_key}");
-  $ua->default_header('Content-Type' => 'application/json');
-  $ua->default_header('user-agent' => 'curl/7.88.1');
-  $config{ua}=$ua;
+our($inst) = AI::Config->new;
+sub self {
+  return $inst if defined $inst;
+  $inst=AI::Config->new;
+  ddx($inst);
+  return $inst;
 };
-# Get API key
-sub get_api_key {
-  return $config{api_key};
-}
 sub get_api_mod {
-  return $config{model};
+  return self->{model};
 };
 sub get_api_ua {
-  return $config{ua};
+  return self->{ua};
 };
 sub get_api_url {
-  return $config{url}{api};
+  return self->{url}{api};
+};
+sub get_loc_host {
+  return self->{host};
+};
+sub get_loc_port {
+  return self->{port};
 };
 sub redact {
   shift if($_[0]->isa(__PACKAGE__));
-  @_ = grep { s{$config{api_key}}{$config{dummy}}g;1; } @_;
+  my ($key)=self->{api_key};
+  my ($dum)=join("",$key,"");
+  $dum=~s{.}{x}g;
+  @_ = grep { s{$key}{$dum}g;1; } @_;
   local($")="";
   wantarray ? @_ : "@_";
+};
+sub new {
+  my ($class)=shift;
+  my ($self)={};
+  if($ENV{API_LOCAL}){
+    warn  (
+      "API_URL, API_MOD and API_KEY are required for communication\n".
+      "entering debgaded mode\n"
+    );
+    return $self;
+  };
+  for(qw( API_MOD API_URL API_KEY ) ) {
+    die "$_ is not defined" unless defined $ENV{$_};
+    my ($key)=lc($_);
+    $self->{$key}=$ENV{$_};
+    delete $ENV{$_} unless $^P;
+  };
+  my ($api_cfg)=$self->{api_mod};
+  ($api_cfg)=map { m{^([^-]+)-(.*)} } $api_cfg;
+  s{gemini}{gem}g for $api_cfg;
+  @_=map { split } qx( id -u );
+  $self->{host}=undef;
+  $self->{port}=shift;
+  $api_cfg=path("etc/")->child($api_cfg.".json");
+  *config = decode_json($api_cfg->slurp);
+  $self->{ua}=AI::UserAgent->new( 
+      base=>$self->{api_url},
+      urls=>{ chat=>"/chat/completions" }
+    
+  );
+  $self->{ua}->default_header('Authorization' => 
+    join("", "Bearer ",$self->{api_key}));
+  $self->{ua}->default_header('Content-Type' => 'application/json');
+  $self->{ua}->default_header('user-agent' => 'curl/7.88.1');
+  return $self;
 };
 
 1;
