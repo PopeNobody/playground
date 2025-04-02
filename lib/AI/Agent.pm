@@ -23,7 +23,6 @@ sub handle_prompt($) {
   note "conv: $conv ($_)" for @_;
 };
 sub new(@) {
-  $DB::single=1;
   my ($class,%self)=@_;
   my ($self)=\%self;
   $self{cond}//= AnyEvent->condvar;
