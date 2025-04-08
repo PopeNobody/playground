@@ -1,5 +1,6 @@
 package AI::Util;
-use lib "lib";
+use lib ".";
+use Snatcher;
 use AI::TextProc;
 use Carp qw(confess);
 use Data::Dumper;
@@ -7,8 +8,8 @@ use FindBin qw($Bin);
 use JSON::PP;
 use POSIX qw(strftime mktime );
 use Path::Tiny;
-require Exporter;
-our(@ISA)=qw(Exporter);
+use Exporter qw(import);
+our(@ISA) = qw(Exporter);
 our(@EXPORT)=qw( 
   cal_loc decode_json encode_json false format
   path safe_isa serdate serial_maker

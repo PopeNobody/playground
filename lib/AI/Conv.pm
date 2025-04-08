@@ -252,8 +252,14 @@ sub transact {
   my ($self) = @_;
   croak "conv object required" unless blessed($self) && $self->isa('AI::Conv');
 
+  my ($url)=get_api_url("chat");
+  ddx({ url=>$url });
+  for($url) {
+    die "no comple: $_" unless /comple/;
+    die "no http: $_" unless /^http/;
+  };
   # Prepare HTTP request
-  my $req = HTTP::Request->new(POST => get_api_url()."/chat/completions");
+  my $req = HTTP::Request->new(POST => $url);
 
   # Prepare payload with OpenAI format
   my $payload = {

@@ -1,30 +1,21 @@
 package AI::UserAgent;
 use lib 'lib';
+use common::sense;
 use AI::Config;
 use parent 'LWP::UserAgent';
+use Carp qw( carp confess croak cluck );
 use AI::Util;
 sub new {
   my ($class,%args)=@_;
   my ($self)=$class->SUPER::new(%args);
-  my (%data) = (
-    class=>$class,
-    self=>"$self",
-  );
-  die "no base" unless defined $base;
-  die "no urls" unless defined $urls;
-  die "no chat" unless defined $urls->{chat};
   $self;
 };
 sub base {
-  return shift->{base};
+  return get_api_url();
 };
 our(%end);
 sub url {
-  my $self=shift;
-  my $name=shift;
-  my $urls=$self->{urls};
-  my $base=$self->{base};
-  URI->new("$base/$urls{$name}");
+  return get_api_url(@_);
 };
 sub list_models {
   my $self=shift;

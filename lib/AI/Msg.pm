@@ -85,7 +85,7 @@ sub new {
   
   # Extract values based on param type
   if(ref($_[0]) eq 'HASH'){
-    dbg STDERR "data from HASH: ", pp($_[0]);
+    #dbg STDERR "data from HASH: ", pp($_[0]);
     # Required keys
     foreach my $k (@required_keys) {
       $self->{$k} = $_[0]->{$k};
@@ -96,7 +96,7 @@ sub new {
       $self->{$k} = $_[0]->{$k} if defined $_[0]->{$k};
     }
   } else {
-    dbg STDERR "data from \@_: (@_)";
+    #dbg STDERR "data from \@_: (@_)";
     
     # We expect exactly three required positional parameters, plus optional ones
     confess "Expected at least 3 parameters (role, name, text)" 

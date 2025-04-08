@@ -1,8 +1,10 @@
 package AI::Playground;
 use lib 'lib';
-use AI::Config;
+use AI::Config qw( get_loc_port );
 use AI::Conv;
 use AI::Util;
+use AnyEvent::Socket;
+use AnyEvent::Handle;
 use autodie;
 use common::sense;
 our(@VERSION) = qw( 0 1 0 );
@@ -14,10 +16,9 @@ sub new {
   bless($self,$class);
   $self->{conv}//=AI::Conv->new;
   $self->{host}//=undef;
-  ($self->{port})//=map { split } qx( id -u );
+  $self->{port}=get_loc_port;
   $self->{sock}=$self->mk_sock;
   $self->{conv}//=AI::Conv->new;
-  $self->{sock}//=$self->mk_sock;
   $self;
 };
 sub run {
