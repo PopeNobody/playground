@@ -2,27 +2,10 @@
 # AI Playground environment activation script
 # Usage: source activate
 
-# Store current directory
-AI_PLAYGROUND_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-AI_PLAYGROUND_DIR="${AI_PLAYGROUND_DIR%/bin}"
-# Backup original environment variables if this is the first activation
-if [ -z "$AI_PLAYGROUND_OLD_PATH" ]; then
-    export AI_PLAYGROUND_OLD_PATH="$PATH"
-fi
-
-if [ -z "$AI_PLAYGROUND_OLD_PERL5LIB" ]; then
-    export AI_PLAYGROUND_OLD_PERL5LIB="$PERL5LIB"
-fi
-
-if [ -z "$AI_PLAYGROUND_OLD_PS1" ]; then
-    export AI_PLAYGROUND_OLD_PS1="$PS1"
-fi
-
-# Update environment variables
-case "$PATH" in
-  ($AI_PLAYGROUND_DIR:*) ;;
-  (*) export PATH="$AI_PLAYGROUND_DIR/bin:$PATH";;
-esac
+source $HOME/.ssh/api-keys.sh
+export AIPLAYGROUND="$(dirname "${BASH_SOURCE})"
+pushd "$AIPLAY
+PERL5LIB="$PLAYGROUND:$PLAYGROUND/lib:
 case ":$PERL5LIB:" in
   (*:$AI_PLAYGROUND_DIR/lib:*) ;;
   (*) export PERL5LIB="$AI_PLAYGROUND_DIR/lib${PERL5LIB:+:$PERL5LIB}";;

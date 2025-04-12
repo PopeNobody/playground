@@ -1,0 +1,127 @@
+#!/usr/bin/perl
+# vim: ts=2 sw=2 ft=perl
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+  if 0;
+$|++;
+use common::sense;
+use autodie;
+our(@VERSION) = qw( 0 1 0 );
+use HTTP::Tiny;
+use lib "lib";
+use JSON::PP;
+BEGIN {
+  delete $main::{&encode_json};
+};
+use AI::Util;
+open(STDOUT,">&STDERR");
+use Data::Dumper::Concise;
+use Scalar::Util qw(reftype);
+die "you gonna type it?" if -t 0;
+my ($content);
+{
+  package req;
+  our($req)=
+  {
+    'method'=>'POST',
+    'url' => "$ENV{API_URL}/chat/completions",
+    headers=>{
+      'content-type' => 'application/json',
+      'authorization' => "Bearer $ENV{API_KEY}",
+      'user-agent' => 'curl/7.88.1',
+    },
+    'content' => {
+      "messages"=> [
+        {
+          "role"=>"user",
+          "content"=>"%s"
+        }
+      ],
+      "model"=> "$ENV{API_MOD}",
+      "temperature"=> 0.7,
+    }
+  };
+  sub ddx;
+  *ddx=*main::ddx;
+  sub reftype;
+  *reftype=*main::reftype;
+  sub model {
+    my ($self)=@_;
+    ddx($self);
+    my ($model)=($self)->{content};
+    main::ddx($model);
+    main::ddx(main::reftype($model));
+    $model;
+  }
+  bless($req,'req');
+  sub main::req {
+    bless($req, 'req');
+  };
+};
+our(%hash);
+{
+  local(*_)=req->{content}{messages};
+  pop(@_);
+  my(%msg);
+  $msg{content}=join("",<STDIN>);
+  $msg{role}="user";
+  push(@_,\%msg);
+}
+
+use IO::Socket;
+my ($tiny)=HTTP::Tiny->new(default_headers=>req->{headers});
+ddx($tiny);
+my $json=encode_json(req->{content});
+ddx($json);
+print $json;
+ddx(
+  $tiny->request(
+    req->{method},
+    req->{url},
+    {
+      content=>join("",$json,"\r\n\r\n\r\n"),
+    }
+  )
+);
+#    
+#    our(@msgs,%head);
+#    *msgs=
+#    local(*msgs)=$head{content}{messages};
+#    print Dumper(\%headers);
+#    push(@{$headers{content}{messages}},@msgs);
+#    
+#    #
+__DATA__
+#pod     $http = HTTP::Tiny->new( %attributes );
+#pod
+#pod This constructor returns a new HTTP::Tiny object.  Valid attributes include:
+#pod
+#pod =for :list
+#pod * C<agent> — A user-agent string (defaults to 'HTTP-Tiny/$VERSION'). If
+#pod   C<agent> — ends in a space character, the default user-agent string is
+#pod   appended.
+#pod * C<cookie_jar> — An instance of L<HTTP::CookieJar> — or equivalent class
+#pod   that supports the C<add> and C<cookie_header> methods
+#pod * C<default_headers> — A hashref of default headers to apply to requests
+#pod * C<local_address> — The local IP address to bind to
+#pod * C<keep_alive> — Whether to reuse the last connection (if for the same
+#pod   scheme, host and port) (defaults to 1)
+#pod * C<max_redirect> — Maximum number of redirects allowed (defaults to 5)
+#pod * C<max_size> — Maximum response size in bytes (only when not using a data
+#pod   callback).  If defined, requests with responses larger than this will return
+#pod   a 599 status code.
+#pod * C<http_proxy> — URL of a proxy server to use for HTTP connections
+#pod   (default is C<$ENV{http_proxy}> — if set)
+#pod * C<https_proxy> — URL of a proxy server to use for HTTPS connections
+#pod   (default is C<$ENV{https_proxy}> — if set)
+#pod * C<proxy> — URL of a generic proxy server for both HTTP and HTTPS
+#pod   connections (default is C<$ENV{all_proxy}> — if set)
+#pod * C<no_proxy> — List of domain suffixes that should not be proxied.  Must
+#pod   be a comma-separated string or an array reference. (default is
+#pod   C<$ENV{no_proxy}> —)
+#pod * C<timeout> — Request timeout in seconds (default is 60) If a socket open,
+#pod   read or write takes longer than the timeout, the request response status code
+#pod   will be 599.
+#pod * C<verify_SSL> — A boolean that indicates whether to validate the SSL
+#pod   certificate of an C<https> — connection (default is false)
+#pod * C<SSL_options> — A hashref of C<SSL_*> — options to pass through to
+#pod   L<IO::Socket::SSL>

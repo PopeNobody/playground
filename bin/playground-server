@@ -7,6 +7,27 @@ use AI::Config;
 $DB::single++ if ${PLAYGROUND_STOP_DEBUG};
 $|++;
 use lib 'lib';
-use AI::Playground;
+use AI::Util;
+eval {
+  use lib "lib";
+  package Tie::DebugHandle;
+  use AI::Util qw(ddx);
+  use Tie::Handle;
+  use IO::Handle;
+  sub wrap(*){
+    my($ref)=shift;
+    ddx($ref);
+
+    $io = IO::Handle->new();
+    if ($io->fdopen(fileno(STDOUT),"w")) {
+      $io->print("Some text\n");
+	   }
+
+    ddx(fileno(FH));
+  };
+};
+print die($@) if $@;
+Tie::DebugHandle->wrap(\*STDOUT);
+
+
 our(@VERSION)=qw(0 1 0);
-AI::Playground->new->run;
