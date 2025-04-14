@@ -68,8 +68,8 @@ my ($content);
 our(%hash);
 sub mk_msg($$) {
   my %msg;
-  die "no role" unless defined $msg{role}=shift;
-  die "no content" unless defined $msg{content}=shift;
+  die "no role" unless defined ($msg{role}=shift);
+  die "no content" unless defined ($msg{content}=shift);
   return \%msg;
 };
 {
