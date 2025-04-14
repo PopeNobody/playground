@@ -3,6 +3,8 @@
 eval 'exec perl -x -wS $0 ${1+"$@"}'
   if 0;
 $|++;
+use FindBin qw($Dir);
+use lib "$Dir/..:$Dir/../lib";
 use common::sense;
 use autodie;
 our(@VERSION) = qw( 0 1 0 );
@@ -16,7 +18,18 @@ use AI::Util;
 open(STDOUT,">&STDERR");
 use Data::Dumper::Concise;
 use Scalar::Util qw(reftype);
-die "you gonna type it?" if -t 0;
+if( @ARGV==0 && -t 0 ) {
+  @ARGV=qw( etc/prompt.txt);
+  system("vi", $ARGV[0]);
+};
+open(STDIN,"<$ARGV[0]") if @ARGV;
+if( defined($ENV{AI_PREFIX}) ){
+  local(@_)=grep { s{^$ENV{AI_PREFIX}_API}{API} } keys %ENV;
+  $ENV{$_}=$ENV{"$ENV{AI_PREFIX}_$_"} for @_;
+};
+for(grep { m{/_API_/} } keys %ENV) {
+  delete $ENV{$_}; 
+};
 my ($content);
 {
   package req;
