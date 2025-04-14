@@ -43,12 +43,7 @@ my ($content);
       'user-agent' => 'curl/7.88.1',
     },
     'content' => {
-      "messages"=> [
-        {
-          "role"=>"user",
-          "content"=>"%s"
-        }
-      ],
+      "messages"=> [],
       "model"=> "$ENV{API_MOD}",
       "temperature"=> 0.7,
     }
@@ -71,14 +66,19 @@ my ($content);
   };
 };
 our(%hash);
+sub mk_msg($$) {
+  my %msg;
+  die "no role" unless defined $msg{role}=shift;
+  die "no content" unless defined $msg{content}=shift;
+  return \%msg;
+};
 {
   local(*_)=req->{content}{messages};
-  pop(@_);
-  my(%msg);
-  $msg{content}=join("",<STDIN>);
-  $msg{role}="user";
-  push(@_,\%msg);
+  push(@_, mk_msg("system",path("etc/system-msg.md")->slurp));
+  push(@_, mk_msg("user",path("/dev/stdin")->slurp));
 }
+ddx(req);
+exit(0);
 
 use IO::Socket;
 my ($tiny)=HTTP::Tiny->new(default_headers=>req->{headers});
