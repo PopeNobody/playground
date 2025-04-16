@@ -426,12 +426,36 @@ sub mirror {
 
 my %idempotent = map { $_ => 1 } qw/GET HEAD PUT DELETE OPTIONS TRACE/;
 
+sub wrapped_request {
+  (@_==2||@_==3) and
+  (ref($_[1]) eq 'HASH') and
+  (@_==2 || ref($_[2]) eq 'HASH') or
+  _croak(q/Usage: $http->wrapped_request(HASHREF,[HASHREF]/);
+  my($self,$req,$args)=@_;
+  $args={} unless defined($args);
+  print ref($self), "\n";
+  print ref($req), "\n";
+  print ref($args),"\n";
+  if($req->{content}){
+    $args->{content}=$req->{content};
+  };
+  print $req->{method}, "\n";
+  print $req->{url}, "\n";
+  $self->request($req->{method},$req->{url},$args);
+};
 sub request {
     my ($self, $method, $url, $args) = @_;
-    @_ == 3 || (@_ == 4 && ref $args eq 'HASH')
+    use Data::Dumper;
+    print Dumper(["$self",$method,$url,$args]);
+    @_ == 3 ||
+     (@_ == 4 && ref $args eq 'HASH')
       or _croak(q/Usage: $http->request(METHOD, URL, [HASHREF])/ . "\n");
     $args ||= {}; # we keep some state in this during _request
-
+    if(@_==2) {
+      my $obj=$method;
+      die "missing method" unless defined($method=$obj->{method});
+      die "missing url" unless defined($url=$obj->{url});
+    };
     # RFC 2616 Section 8.1.4 mandates a single retry on broken socket
     my $response;
     for ( 0 .. 1 ) {

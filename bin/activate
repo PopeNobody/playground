@@ -6,7 +6,8 @@ setup_playground ()
 { 
     local IFS="$IFS";
     source $HOME/.ssh/api-keys.sh;
-    export AIPLAYGROUND PERL5LIB PATH;
+    export AI_PLAYGROUND PERL5LIB PATH;
+    export $( compgen -A variables | grep _API_ )
     AI_PLAYGROUND=$(cd $(dirname "${BASH_SOURCE}") && cd .. && pwd);
     pushd "$AI_PLAYGROUND" 2> /dev/null;
     set -- ${PWD} ${PERL5LIB//:/ };
@@ -18,3 +19,10 @@ setup_playground ()
 }
 declare -fx setup_playground
 setup_playground
+return 0 2>/dev/null
+declare -p > environ.out
+test -z "$*" || exec "$@"
+echo >&2 kinda pointless bro.  The environment you set up is gong away ...
+echo ....
+sleep 0.5
+echo now

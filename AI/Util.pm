@@ -1,21 +1,31 @@
 package AI::Util;
 use lib ".";
 use Snatcher;
-use AI::TextProc;
 use Carp qw(confess);
-use Data::Dumper;
 use FindBin qw($Bin);
 use JSON::PP;
-use POSIX qw(strftime mktime );
 use Path::Tiny;
+use POSIX qw(strftime mktime );
+use Scalar::Util qw(blessed);
+use Text::Wrap qw(wrap $columns );
+use common::sense;
+use Data::Dumper::Concise;
+BEGIN {
+  *qquote=*Data::Dumper::qquote;
+  *true=*JSON::true;
+  *false=*JSON::false;
+};
+
 use Exporter qw(import);
 our(@ISA) = qw(Exporter);
 our(@EXPORT)=qw( 
-  cal_loc decode_json encode_json false format
-  path safe_isa serdate serial_maker
-  true qquote randomize
+  cal_loc decode_json encode_json false find_script
+  path safe_isa serdate serial_maker maybe_run_script
+  true qquote randomize safe_can
 
   pp ppx dd ddx ee eex
+
+  text_wrap
 
   $Bin $Pre $Script
 );
@@ -26,26 +36,25 @@ sub randomize(@) {
   };
   return @_;
 };
-*qquote=*Data::Dumper::qquote;
-*true=*JSON::true;
-*false=*JSON::false;
-sub format;
-*format=\&AI::TextProc::format;
-
+sub safe_can {
+  my ($obj,$mth) = splice(@_);
+  for($obj) {
+    return 0 unless defined;
+    return 0 unless ref;
+    return 0 unless blessed($obj);
+    return 0 unless $_->can($mth);
+    return 1;
+  };
+};
 sub safe_isa {
   my ($obj,$cls) = splice(@_);
   for($obj) {
     return 0 unless defined;
     return 0 unless ref;
-    return 0 unless blessed;
+    return 0 unless blessed($obj);
     return 0 unless $_->isa($cls);
     return 1;
   };
-};
-sub pp {
-  local ($Data::Dumper::Deparse)=1;
-  local ($Data::Dumper::Terse)=1;
-  return Dumper(@_);
 };
 sub serdate(;$)
 {
@@ -59,6 +68,9 @@ sub call_loc {
     ($pack,$file,$line)=caller(++$i);
   };
   return $file, $line;
+};
+sub pp {
+  return Dumper(@_);
 };
 sub ppx {
   return join(":",call_loc,pp(@_));
@@ -116,22 +128,24 @@ sub serial_maker(%) {
 
 our ($json) = JSON::PP->new->ascii->pretty->allow_nonref->convert_blessed;
 sub encode_json ($);
+our(@copy);
 sub encode_json($) {
   local($_);
+  my($copy)=pp(\@_);
   eval {
     ($_)=$json->encode(@_);
   };
   return $_ if defined;
-  ddx(\@copy);
-  die join("\n\n",$@,pp(@copy));
+  die join("\n\n",$@,$copy);
 };
 sub decode_json {
   local($_);
+  my($copy)=pp(\@_);
   eval {
     ($_)=$json->decode(@_);
   };
   return $_ if defined;
-  die  join("\n\n",$@,pp(@copy));
+  die  join("\n\n",$@,$copy);
 };
 {
   package Path::Tiny;
@@ -142,11 +156,81 @@ sub decode_json {
     return shift->suf("sav");
   };
   sub suf {
-    local($self)=shift;
+    my($self)=shift;
     my($suf)=shift;
-    for(shift) {
-      return path("$_$suf");
-    };
+    return path("$self.$suf");
   };
 }
+sub text_wrap {
+  local(@_)=@_;
+  local($columns)=70;
+  my $i=0;
+  while($i<@_){
+    local(*_)=\$_[$i];
+    if(!defined) {
+      splice(@_,$i,1);
+    } elsif(blessed($_) and $_->can("slurp")){
+      splice(@_,$i,1,$_->slurp);
+    } elsif (ref($_) eq 'ARRAY' ) {
+      splice(@_,$i,1,@$_);
+    } elsif (m{\n}) {
+      splice(@_,$i,1,split(m{\n}));
+    } else {
+      $i++;
+    };
+  };
+  die "still refs in \@_" if 0!=(grep {ref($_)} @_);
+  local($_)=join("\n",@_);
+  # fixme.  We should find lists and such in markup,
+  # and make sure there is a blank line after.
+  $_=wrap("","",$_);
+  if(wantarray){
+    return split(m{\n});
+  } else {
+    return $_;
+  };
+};
+sub find_script($){
+  local($_)=shift;
+  s{^\n+}{}sm;
+  s{\n+$}{};
+  local(@_)=split(m{\n});
+  my (@i) = grep { $_[$_] =~ m{^```} } 0 .. @_-1;
+  ddx([ @i, [ @_-1 ]]);
+  ddx([[ @i == 2 ], [ $i[0] == 0 ], [ $i[1] == @_-1 ]] );
+  if(@i == 2 && $i[0] == 0 && $i[1] == @_-1 ) {
+    shift(@_); pop(@_);
+    say STDERR "found ticks\n";
+  };
+  if(@_[0] =~ m{^#!}){
+    say STDERR "found shebang\n";
+    return join("\n",@_);
+  } else {
+    return ();
+  };
+};
+sub maybe_run_script($$$){
+  die (
+    "usage: maybe_run_script( [ response, mod_id, conv ] )" 
+  ) unless @_ ==1;
+  my ($text,$mod_id,$conv)=(shift,shift,shift);
+  my ($script)=find_script($text);
+  my ($send);
+  if(defined($script)){
+    path("script.pl")->spew($script);
+    system("capture -f script.log -- perl script.pl");
+    $text=join("\n",$conv,"SYSTEM:",
+      "  script found:",
+      join("\n",map { "    $_" } split(m{\n},$script)),
+      "  output produced:",
+      join("\n",map { "    $_" } path("script.log")->lines()),
+    );
+    $send=1;
+  } else {
+    $text=text_wrap($text);
+    $conv=join("\n",$conv,uc("$mod_id:"),join("\n  ",m{\n}));
+    $send=0;
+  };
+  return [ $send, $conv ];
+};
 1;

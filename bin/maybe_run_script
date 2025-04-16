@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+# vim: ts=2 sw=2 ft=perl
+eval 'exec perl -x -wS $0 ${1+"$@"}'
+  if 0;
+$|++;
+use common::sense;
+use strict;
+use autodie;
+use AI::Util;
+our(@VERSION) = qw( 0 1 0 );
+
+die "usage: $0 <file with script or reply>" unless @ARGV;
+my ($pconv)=path("etc/prompt.txt");
+my ($conv)=$pconv->slurp;
+my ($ptext)=path($ARGV[0]);
+my ($text)=ptext->slurp;
+print pp( [ maybe_run_script($text,$ENV{AI_HAND},$conv) ] );

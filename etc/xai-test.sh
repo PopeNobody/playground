@@ -1,34 +1,32 @@
-curl https://api.x.ai/v1/chat/completions  \
+#!/bin/bash
+if test -n "${API_URL}" && test -n "${API_KEY}" && test -n "${API_MOD}"; then
+  echo >&2 "Generic values set"
+elif test -n "${AI_PREFIX}"; then
+  AI_PREFIX="$(echo -n "$AI_PREFIX" | tr 'a-z' 'A-Z')"
+  for i in $(compgen -A variable | grep "^${AI_PREFIX}_"); do
+    declare -n src="${i}"
+    declare -n dst="${i#${AI_PREFIX}_}"
+    dst=$src
+  done
+else
+  echo >&2 "no credentials"
+fi
+CONTENT="$(cat)"
+curl "$API_URL/chat/completions"  \
   -H "Content-Type: application/json"    \
   -H "Authorization: Bearer $API_KEY"   \
-  -d '{
-  "messages" : [
+  -d "{
+  \"messages\" : [
     {
-      "content" : "You are a helpful assistant",
-      "role" : "system"
+      \"content\" : \"You are a helpful assistant\",
+      \"role\" : \"system\"
     },
     {
-      "role" : "user",
-      "content" : "Is this reaching Grok, at XAI?"
-    },
-    {
-      "role":"assistant",
-      "content":"No, I am Grok, created by xAI. I'"'"'m here to help answer your questions and provide assistance. How can I help you today?"
-    },
-    {
-      "role" : "user",
-      "content" : "I must confess to being a little puzzled by that response."
-    },
-    {
-      "role" : "assistant",
-      "content" : "I apologize for any confusion. I'"'"'m Grok, an AI developed by xAI, a company working on building artificial intelligence to accelerate human scientific discovery. I'"'"'m here to provide helpful and truthful answers to your questions. How can I assist you today?"
-    },
-    {
-      "role" : "user",
-      "content" : "Not a problem.  Just reminded me of a Get Smart character named '"'"'the claw'"'"' ... he was Chinese and pronounced it '"'"'craw'"'"' ... but whever anyone else said '"'"'craw'"'"', he would yell '"'"'Not craw!  CRAW"
+      \"role\" : \"user\",
+      \"content\" : \"${CONTENT}\"
     }
   ],
-  "model" : "grok-2-latest"
-}' \
+  \"model\" : \"$API_MOD\"
+}" \
   --trace-ascii trace
 

@@ -2,12 +2,11 @@ package Nobody::PP;
 
 use common::sense;
 use vars qw(@EXPORT @EXPORT_OK $VERSION $DEBUG %EXPORT_TAGS @subs);
-use subs qq(pp dd ppx ddx quote); 
 
 require Exporter;
 *import = \&Exporter::import;
 @EXPORT_OK = qw(pp dd ppx ddx ee eex quote qquote loc);
-@EXPORT = @subs;
+@EXPORT = ();
 %EXPORT_TAGS = ( 
   all=>[ @EXPORT_OK ],
 );
