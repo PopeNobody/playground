@@ -5,61 +5,65 @@ eval 'exec perl -x -wS $0 ${1+"$@"}'
 $|++;
 use FindBin qw($Dir);
 use lib "$Dir/..:$Dir/../lib";
-use common::sense;
-use autodie;
+use common::sense; use autodie;
 our(@VERSION) = qw( 0 1 0 );
-use HTTP::Tiny;
-use IO::Socket;
-use JSON::PP;
-use Carp;
+use HTTP::Tiny; use IO::Socket; use JSON::PP;
+use Carp; use AI::Util;
 use Carp qw(verbose);
-use AI::Util;
-open(STDOUT,">&STDERR");
 use Scalar::Util qw(reftype);
 use Data::Dumper::Concise;
+use AI::Msg;
+use AI::Conv;
 
-if( defined($ENV{AI_PREFIX}) ){
-  local(@_)=grep { s{^$ENV{AI_PREFIX}_API}{API} } keys %ENV;
-  $ENV{$_}=$ENV{"$ENV{AI_PREFIX}_$_"} for @_;
-};
-for(grep { m{/_API_/} } keys %ENV) {
-  delete $ENV{$_}; 
-};
-my ($content);
-{
-  package req;
-  our($req)=
-  {
-    'method'=>'POST',
-    'url' => "$ENV{API_URL}/chat/completions",
-    headers=>{
-      'content-type' => 'application/json',
-      'authorization' => "Bearer $ENV{API_KEY}",
-      'user-agent' => 'curl/7.88.1',
-    },
-    'content' => {
-      "messages"=> [],
-      "model"=> "$ENV{API_MOD}",
-      "temperature"=> 0.7,
-    }
-  };
-  sub ddx;
-  *ddx=*main::ddx;
-  sub reftype;
-  *reftype=*main::reftype;
-  sub model {
-    my ($self)=@_;
-    ddx($self);
-    my ($model)=($self)->{content};
-    main::ddx($model);
-    main::ddx(main::reftype($model));
-    $model;
-  }
-  bless($req,'req');
-  sub main::req {
-    bless($req, 'req');
+sub mk_msg($$); sub setup(); 
+sub load_prompt($); sub mk_msg($$);
+sub res(); sub req(); sub sysmsg();
+
+setup();
+our($tiny,@msgs);
+my ($AI)=$ENV{API_HAND};
+
+while(1) {
+  my ($sysmsg);
+  ($sysmsg)=mk_msg("system",path("etc/system-msg.md")->slurp);
+  (@msgs)=($sysmsg);
+  $DB::single=1;
+	unless(defined($tiny)){
+		$tiny=HTTP::Tiny->new();
+	};
+	our( $req, $res );
+  $res=($tiny->request($req));
+  say STDERR "got response: $res";
+  die "Failed: $res->{status} $res->{reason}\n" unless $res->{success};
+  say "Status: ", $res->{status};
+  say "Reason: ", $res->{reason};
+  my ($cont)=decode_json($res->{content});
+  my (@choices)=@{$cont->{choices}};
+  if(@choices==0) {
+    die "no coices in response";
+  } else {
+#        @_=maybe_run_script($choices[0]->{content},$AI,$conv);
   };
 };
+sub setup() {
+	if( defined($ENV{AI_PREFIX}) ){
+		local(@_)=grep { s{^$ENV{AI_PREFIX}_API}{API} } keys %ENV;
+		$ENV{$_}=$ENV{"$ENV{AI_PREFIX}_$_"} for @_;
+	};
+	for(grep { m{/_API_/} } keys %ENV) {
+		delete $ENV{$_}; 
+	};
+}
+sub load_prompt($) {
+	my ($pfile,$prompt)=@_;
+  if(defined($ENV{NO_EDIT})){
+    ($prompt)=path("etc/prompt.txt")->slurp;
+  } else {
+    ($prompt)=join("",edit_prompt("etc/prompt.txt"));
+  };
+  return $prompt;
+}
+#    $cdir->child(sprintf("msg%04d-req.txt",$cidx++))->spew(pp($req));
 sub mk_msg($$) {
   my ($role,$content)=@_;
   croak "no role" unless defined ($role);
@@ -69,69 +73,41 @@ sub mk_msg($$) {
   $msg{content}=text_wrap($content);
   return \%msg;
 };
-my ($tiny)= HTTP::Tiny->new(default_headers=>req->{headers},
-proxy=>"http://localhost:6565");
-my ($pconv)=path("conv/conv.txt");
-my ($sysm);
-unless($pconv->exists){
-  $pconv->parent->mkdir;
-  ($sysm)=path("etc/system-msg.md");
-  die "missing system message" unless $sysm->exists;
-};
-my ($cdir)=$pconv->parent;
-
-my ($AI)=$ENV{API_HAND};
-my ($cidx)=1;
-my ($res);
-my ($conv);
-if(-e $pconv) {
-  ($conv)=$pconv->slurp;
-};
-our(@msgs);
-my ($msgs)=req->{content}{messages};
-say STDERR pp($msgs);
-my (%msg);
-while(1) {
-  my($prompt);
-  if(defined($ENV{NO_EDIT})){
-    ($prompt)=path("etc/prompt.txt")->slurp;
-  } else {
-    ($prompt)=join("",edit_prompt("etc/prompt.txt"));
-  };
-  say STDERR length($prompt);
-  print STDERR  "Editor Complete";
-  if(length($conv)) {
-    print STDERR "adding to conv";
-    $conv=>s{\n+$}{};
-    $conv="$conv\n\n";
-  }
-  $conv="${conv}USER:\n$prompt";
-  $conv=~s{\n+$}{\n\n};
-  my ($sysmsg);
-  ($sysmsg)=mk_msg("system",path("etc/system-msg.md")->slurp);
-  ddx($sysmsg);
-  (@msgs)=($sysmsg);
-  push(@msgs, mk_msg("user",$conv));
-  ddx(\@msgs);
-  $cdir->child(sprintf("msg%04d-req.txt",$cidx++))->spew(pp(req));
-  $DB::single=1;
-  $res=($tiny->request(
-    req->{method},
-    req->{url},
-    {
-    }
-  ));
-  say STDERR "got response: $res";
-  $cdir->child(sprintf("msg%04d-res.txt",$cidx++))->spew(pp($res));
-  die "Failed: $res->{status} $res->{reason}\n" unless $res->{success};
-  say "Status: ", $res->{status};
-  say "Reason: ", $res->{reason};
-  my ($cont)=decode_json($res->{content});
-  my (@choices)=@{$cont->{choices}};
-  if(@choices==0) {
-    die "no coices in response";
-  } else {
-    @_=maybe_run_script($choices[0]->{content},$AI,$conv);
-  };
+sub sysmessage() {
+#    	unless($pconv->exists){
+#    		$pconv->parent->mkdir;
+#    		($sysm)=path("etc/system-msg.md");
+#    		die "missing system message" unless $sysm->exists;
+#    	};
 };
 close(STDOUT);
+{
+  package req;
+  our($req)= {
+    'method'=>'POST',
+    'url' => "$ENV{API_URL}/chat/completions",
+    headers=>{
+      'content-type' => 'application/json',
+      'authorization' => "Bearer $ENV{API_KEY}",
+      'user-agent' => 'curl/7.88.1',
+    },
+  };
+  bless($req,'req');
+	our(%content) = (
+		"model"=> "$ENV{API_MOD}",
+		"temperature"=> 0.7,
+	);
+	sub http_req(@) {
+		my(%cont)=%content;
+		$cont{messages}=@_;
+    my(@req)=
+    ( $req->{method},
+      $req->{url},
+      { 
+        content=>undef,
+        headers=>$req->{headers}
+      }
+    );
+#      $cdir->child(sprintf("msg%04d-res.txt",$cidx++))->spew(pp($res));
+};
+}

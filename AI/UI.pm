@@ -1,11 +1,12 @@
 package AI::UI;
 use lib 'lib';
-use AI::Config;
+use AI::Config qw (get_api_mod);
 use AI::Util;
 use base "Exporter";
 use common::sense;
 use subs qw( run_script );
 our($user,$file,$conv,$res,$req)=(1, "nobody");
+use Carp qw(confess croak carp cluck);
 our(@EXPORT)=qw(
   transact edit set_conv $conv $file run_script may_edit
 );
@@ -42,6 +43,84 @@ sub transact {
     run_script;
   };
   $conv->transact();
+}
+sub transact2 {
+  my ($self) = @_;
+  croak "conv object required" unless blessed($self) && $self->isa('AI::Conv');
+
+  my ($url)=get_api_url("chat");
+  ddx({ url=>$url });
+  for($url) {
+    die "no comple: $_" unless /comple/;
+    die "no http: $_" unless /^http/;
+  };
+  # Prepare HTTP request
+  my $req = HTTP::Request->new(POST => $url);
+
+  # Prepare payload with OpenAI format
+  my $payload = {
+    model => get_api_mod(),
+    messages => [],
+  };
+
+  # Extract messages from conversation
+  foreach my $msg (@{$self->{msgs}}) {
+    push @{$payload->{messages}}, {
+      role => $msg->{role},
+      content => $msg->{text}
+    };
+  }
+
+  my $json=encode_json($payload);
+  $req->content($json);
+
+  # Store redacted request for debugging
+  my $req_disp = $req->as_string;
+  $req_disp=AI::Config->redact($req_disp);
+  warn "$req_disp" if length($req_disp)<5;
+  my $pair = $self->pair_name("req"); 
+  path($pair->[0])->spew($req_disp);
+  my $ua = get_api_ua();
+
+  confess "in degraded mode -- cannot call out " unless defined($ua);
+
+  $ua->cookie_jar($self->jar);
+  my $res = get_api_ua()->request($req);
+  $self->jar->save;
+  # Store response for debugging
+  my $res_disp=$res->as_string;
+  warn "$res_disp" if length($res_disp)<5;
+  path($pair->[1])->spew($res_disp);
+
+  # Handle errors
+  unless ($res->is_success) {
+    my $error = "API request failed: " . $res->status_line . "\n\n";
+    $error .= "Request:\n$req_disp\n\n";
+    $error .= "Response:\n$res_disp\n\n";
+    croak $error;
+  }
+
+  # Parse response
+  my $response_data = decode_json($res->decoded_content);
+  my ($reply);
+  if(defined($response_data->{choices}[0]{message}{content})){
+    $reply = $response_data->{choices}[0]{message}{content};
+  }
+
+  # Handle missing content
+  unless (defined $reply and length $reply) {
+    $reply = "No response content received from API. ".
+    "Full response: " . $res->decoded_content
+  }
+  # Append AI response to conv
+  my $msg = AI::Msg->new({
+      role => "assistant",
+      name => get_api_mod,
+      text => $reply
+    });
+  $self->add($msg);
+
+  return $msg;
 }
 sub edit($) {
   my ($file)=shift;
