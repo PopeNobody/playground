@@ -18,12 +18,6 @@ open(STDOUT,">&STDERR");
 use Scalar::Util qw(reftype);
 use Data::Dumper::Concise;
 
-if( @ARGV==0 && -t 0 ) {
-  system("vi etc/prompt.txt </dev/tty >/dev/tty");
-  die "vi failed" if $?;
-  @ARGV=qw(etc/prompt.txt);
-};
-open(STDIN,"<$ARGV[0]") if @ARGV;
 if( defined($ENV{AI_PREFIX}) ){
   local(@_)=grep { s{^$ENV{AI_PREFIX}_API}{API} } keys %ENV;
   $ENV{$_}=$ENV{"$ENV{AI_PREFIX}_$_"} for @_;
@@ -75,69 +69,69 @@ sub mk_msg($$) {
   $msg{content}=text_wrap($content);
   return \%msg;
 };
-my ($tiny)= HTTP::Tiny->new(default_headers=>req->{headers});
-while(1) {
-  {
-    local(*_)=req->{content}{messages};
-    push(@_, mk_msg("system",path("etc/system-msg.md")->slurp));
-    local($_)=join("",<STDIN>);
-    push(@_, mk_msg("user",$_));
-  }
+my ($tiny)= HTTP::Tiny->new(default_headers=>req->{headers},
+proxy=>"http://localhost:6565");
+my ($pconv)=path("conv/conv.txt");
+my ($sysm);
+unless($pconv->exists){
+  $pconv->parent->mkdir;
+  ($sysm)=path("etc/system-msg.md");
+  die "missing system message" unless $sysm->exists;
+};
+my ($cdir)=$pconv->parent;
 
-  path("req.txt")->spew(pp(req));
-  my ($res)=$tiny->request(
+my ($AI)=$ENV{API_HAND};
+my ($cidx)=1;
+my ($res);
+my ($conv);
+if(-e $pconv) {
+  ($conv)=$pconv->slurp;
+};
+our(@msgs);
+my ($msgs)=req->{content}{messages};
+say STDERR pp($msgs);
+my (%msg);
+while(1) {
+  my($prompt);
+  if(defined($ENV{NO_EDIT})){
+    ($prompt)=path("etc/prompt.txt")->slurp;
+  } else {
+    ($prompt)=join("",edit_prompt("etc/prompt.txt"));
+  };
+  say STDERR length($prompt);
+  print STDERR  "Editor Complete";
+  if(length($conv)) {
+    print STDERR "adding to conv";
+    $conv=>s{\n+$}{};
+    $conv="$conv\n\n";
+  }
+  $conv="${conv}USER:\n$prompt";
+  $conv=~s{\n+$}{\n\n};
+  my ($sysmsg);
+  ($sysmsg)=mk_msg("system",path("etc/system-msg.md")->slurp);
+  ddx($sysmsg);
+  (@msgs)=($sysmsg);
+  push(@msgs, mk_msg("user",$conv));
+  ddx(\@msgs);
+  $cdir->child(sprintf("msg%04d-req.txt",$cidx++))->spew(pp(req));
+  $DB::single=1;
+  $res=($tiny->request(
     req->{method},
     req->{url},
     {
-      content=>encode_json(req->{content})
     }
-  );
-  path("res.txt")->spew(pp($res));
+  ));
+  say STDERR "got response: $res";
+  $cdir->child(sprintf("msg%04d-res.txt",$cidx++))->spew(pp($res));
   die "Failed: $res->{status} $res->{reason}\n" unless $res->{success};
   say "Status: ", $res->{status};
   say "Reason: ", $res->{reason};
   my ($cont)=decode_json($res->{content});
-  path("cont.txt")->spew(pp($cont));
-  my ($choices)=$cont->{choices};
   my (@choices)=@{$cont->{choices}};
-  for(@choices) {
-    $_=mk_msg("assistent",$_->{message}{content});
-  }
-  sub show_choice($$) {
-    my($pfix)=shift;
-    for(shift) {
-      say $pfix, $_ for split( m{\n},$_->{content} );
-    };
-  };
-  sub check_script {
-    local(*_)=shift;
-    my (@bt) = grep { $_[$_] =~ m{^```} } 0 .. @_;
-    ddx(\@bt);  
-  };
   if(@choices==0) {
     die "no coices in response";
   } else {
-    # for now we only deal wtih chocie 0.
-    maybe_run_script($choices[0]->{content});
+    @_=maybe_run_script($choices[0]->{content},$AI,$conv);
   };
-};
-#      open(my $save,">&STDOUT");
-#      open(STDOUT,"|tee -a etc/prompt.txt");
-#      say "GROK:";
-#      show_choice("  ",$choices[0]);
-#      close(STDOUT);
-#      for("\n".$choices[0]->content."\n"){
-#        my (@parts) = split(m{\n```});
-#        ddx(
-#      };
-#      open(STDOUT,">&".fileno($save));
-#      open(STDOUT,"|tee script.pl");
-#      show_choice("",$choices[0]);
-#    } else {
-#      my ($i)=0;
-#      for( @{$cont->{choices}} ) {
-#        say "  choice #", $i;
-#        show_choice("    ",$_);
-#      }
 };
 close(STDOUT);

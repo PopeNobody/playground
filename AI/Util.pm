@@ -21,7 +21,7 @@ our(@ISA) = qw(Exporter);
 our(@EXPORT)=qw( 
   cal_loc decode_json encode_json false find_script
   path safe_isa serdate serial_maker maybe_run_script
-  true qquote randomize safe_can
+  true qquote randomize safe_can edit_prompt
 
   pp ppx dd ddx ee eex
 
@@ -208,6 +208,11 @@ sub find_script($){
   } else {
     return ();
   };
+};
+sub edit_prompt($) {
+  system("vi $_[0] </dev/tty >/dev/tty");
+  die "vi failed" if $?;
+  return path($_[0])->slurp;
 };
 sub maybe_run_script($$$){
   die (
